@@ -6,7 +6,6 @@ from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.dml import MSO_FILL, MSO_PATTERN, MSO_THEME_COLOR
 from pptx.enum.shapes import MSO_CONNECTOR_TYPE
-from datetime import datetime
 import io
 import re
 import requests
@@ -408,7 +407,7 @@ if st.button("Generate Transition Deck"):
 
         # Diagram shapes
         # Central Authority rectangle
-        central = zia_slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(2, 2), Inches(2, 1))
+        central = zia_slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(2), Inches(2), Inches(2), Inches(1))
         central.fill.solid()
         central.fill.fore_color.rgb = RGBColor(0, 102, 204)
         central_tf = central.text_frame
@@ -418,7 +417,7 @@ if st.button("Generate Transition Deck"):
         central_tf.paragraphs[0].alignment = PP_ALIGN.CENTER
 
         # Z-Tunnels rectangle
-        tunnels = zia_slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(5, 2), Inches(2, 1))
+        tunnels = zia_slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(5), Inches(2), Inches(2), Inches(1))
         tunnels.fill.solid()
         tunnels.fill.fore_color.rgb = RGBColor(0, 102, 204)
         tunnels_tf = tunnels.text_frame
@@ -428,12 +427,12 @@ if st.button("Generate Transition Deck"):
         tunnels_tf.paragraphs[0].alignment = PP_ALIGN.CENTER
 
         # Connector arrow
-        connector = zia_slide.shapes.add_connector(MSO_CONNECTOR_TYPE.STRAIGHT, Inches(4, 2.5), Inches(5, 2.5))
+        connector = zia_slide.shapes.add_connector(MSO_CONNECTOR_TYPE.STRAIGHT, Inches(4), Inches(2.5), Inches(5), Inches(2.5))
         connector.line.color.rgb = RGBColor(0, 102, 204)
         connector.line.width = Pt(2)
 
         # Side text boxes for technical details
-        tech_box = zia_slide.shapes.add_textbox(Inches(0.5, 3), Inches(4, 3))
+        tech_box = zia_slide.shapes.add_textbox(Inches(0.5), Inches(3), Inches(4), Inches(3))
         tech_tf = tech_box.text_frame
         tech_tf.text = f"Identity Provider: {idp}\nAuthentication Type: {auth_type}\nUser/Group Provisioning: {prov_type}\nTunnel Type: {tunnel_type}\nZCC Deployment System: {deploy_system}\nWindows Devices: {windows_num}\nMacOS Devices: {mac_num}\nGeo Locations: {geo_locations}\nSSL Inspection Policies: {ssl_policies}\nURL Filtering Policies: {url_policies}\nCloud App Control Policies: {cloud_policies}\nFirewall Policies: {fw_policies}"
         for p in tech_tf.paragraphs:
@@ -462,7 +461,7 @@ if st.button("Generate Transition Deck"):
         tf.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
 
         # Short Term box
-        short_box = next_steps_slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.5, 1.5), Inches(4.5, 4))
+        short_box = next_steps_slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.5), Inches(1.5), Inches(4.5), Inches(4))
         short_box.fill.solid()
         short_box.fill.fore_color.rgb = RGBColor(0, 176, 80)  # Green
         short_tf = short_box.text_frame
@@ -479,7 +478,7 @@ if st.button("Generate Transition Deck"):
             p.alignment = PP_ALIGN.LEFT
 
         # Long Term box
-        long_box = next_steps_slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(5, 1.5), Inches(4.5, 4))
+        long_box = next_steps_slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(5), Inches(1.5), Inches(4.5), Inches(4))
         long_box.fill.solid()
         long_box.fill.fore_color.rgb = RGBColor(0, 102, 204)  # Blue
         long_tf = long_box.text_frame
@@ -515,7 +514,7 @@ if st.button("Generate Transition Deck"):
             para.alignment = PP_ALIGN.LEFT
 
         # Speech bubble
-        bubble = thank_slide.shapes.add_shape(MSO_SHAPE.CLOUD_CALL_OUT, Inches(7, 3), Inches(2, 1))
+        bubble = thank_slide.shapes.add_shape(MSO_SHAPE.CLOUD_CALL_OUT, Inches(7), Inches(3), Inches(2), Inches(1))
         bubble.fill.solid()
         bubble.fill.fore_color.rgb = RGBColor(255, 192, 0)  # Yellow
         bubble_tf = bubble.text_frame
