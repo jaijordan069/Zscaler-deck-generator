@@ -204,30 +204,32 @@ if st.button("Generate Transition Deck"):
         fill.fore_color.theme_color = MSO_THEME_COLOR.ACCENT_1
         fill.back_color.rgb = RGBColor(255, 255, 255)
 
-        # Add PROSERVE header to master
-        header = master.shapes.add_textbox(Inches(8), Inches(0), Inches(2), Inches(0.5))
-        header_tf = header.text_frame
-        header_tf.text = "PROSERVE"
-        header_tf.paragraphs[0].font.size = Pt(32)
-        header_tf.paragraphs[0].font.bold = True
-        header_tf.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
-        header_tf.paragraphs[0].alignment = PP_ALIGN.RIGHT
+        # Helper function to add header, footer, slide number to each slide
+        def add_header_footer_number(slide, slide_num_str):
+            # PROSERVE header
+            header = slide.shapes.add_textbox(Inches(8), Inches(0), Inches(2), Inches(0.5))
+            header_tf = header.text_frame
+            header_tf.text = "PROSERVE"
+            header_tf.paragraphs[0].font.size = Pt(32)
+            header_tf.paragraphs[0].font.bold = True
+            header_tf.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
+            header_tf.paragraphs[0].alignment = PP_ALIGN.RIGHT
 
-        # Add footer to master
-        footer = master.shapes.add_textbox(Inches(0.5), Inches(6.5), Inches(9), Inches(0.5))
-        footer_tf = footer.text_frame
-        footer_tf.text = "Zscaler, Inc. All rights reserved. © 2025"
-        footer_tf.paragraphs[0].font.size = Pt(8)
-        footer_tf.paragraphs[0].font.color.rgb = RGBColor(128, 128, 128)
-        footer_tf.paragraphs[0].alignment = PP_ALIGN.LEFT
+            # Footer
+            footer = slide.shapes.add_textbox(Inches(0.5), Inches(6.5), Inches(9), Inches(0.5))
+            footer_tf = footer.text_frame
+            footer_tf.text = "Zscaler, Inc. All rights reserved. © 2025"
+            footer_tf.paragraphs[0].font.size = Pt(8)
+            footer_tf.paragraphs[0].font.color.rgb = RGBColor(128, 128, 128)
+            footer_tf.paragraphs[0].alignment = PP_ALIGN.LEFT
 
-        # Slide number placeholder in master
-        slide_num = master.shapes.add_textbox(Inches(9.5), Inches(6.5), Inches(0.5), Inches(0.5))
-        slide_num_tf = slide_num.text_frame
-        slide_num_tf.text = "<slide_number>"
-        slide_num_tf.paragraphs[0].font.size = Pt(12)
-        slide_num_tf.paragraphs[0].font.color.rgb = RGBColor(128, 128, 128)
-        slide_num_tf.paragraphs[0].alignment = PP_ALIGN.RIGHT
+            # Slide number
+            slide_num = slide.shapes.add_textbox(Inches(9.5), Inches(6.5), Inches(0.5), Inches(0.5))
+            slide_num_tf = slide_num.text_frame
+            slide_num_tf.text = slide_num_str
+            slide_num_tf.paragraphs[0].font.size = Pt(12)
+            slide_num_tf.paragraphs[0].font.color.rgb = RGBColor(128, 128, 128)
+            slide_num_tf.paragraphs[0].alignment = PP_ALIGN.RIGHT
 
         # Helper function to add title slide
         def add_title_slide(title, subtitle=None):
@@ -242,6 +244,7 @@ if st.button("Generate Transition Deck"):
                 subtitle_placeholder.text = subtitle
                 subtitle_placeholder.text_frame.paragraphs[0].font.size = Pt(32)
                 subtitle_placeholder.text_frame.paragraphs[0].font.color.rgb = RGBColor(255, 0, 0)  # Red for customer
+            add_header_footer_number(slide, str(len(prs.slides)))
             return slide
 
         # Helper for bullet slide
@@ -262,6 +265,7 @@ if st.button("Generate Transition Deck"):
                 p.font.color.rgb = RGBColor(255, 255, 255)
                 p.bullet.color.rgb = RGBColor(0, 102, 204)  # Blue bullets
                 p.alignment = PP_ALIGN.LEFT
+            add_header_footer_number(slide, str(len(prs.slides)))
             return slide
 
         # Helper for table slide
@@ -321,6 +325,7 @@ if st.button("Generate Transition Deck"):
                         line.color.rgb = RGBColor(255, 255, 255)
                         line.width = Pt(1)
 
+            add_header_footer_number(slide, str(len(prs.slides)))
             return slide
 
         # Progress bar
@@ -340,17 +345,20 @@ if st.button("Generate Transition Deck"):
             for shape in title_slide.shapes:
                 if "Picture" in shape.name:
                     shape.zorder = 0
+        add_header_footer_number(title_slide, "1")
         current_slide += 1
         progress.progress(current_slide / total_slides)
 
         # Slide 2: Agenda
         agenda_bullets = ["Project Summary", "Technical Summary", "Recommended Next Steps"]
-        add_bullet_slide("Meeting Agenda", agenda_bullets)
+        agenda_slide = add_bullet_slide("Meeting Agenda", agenda_bullets)
+        add_header_footer_number(agenda_slide, "2")
         current_slide += 1
         progress.progress(current_slide / total_slides)
 
         # Slide 3: Project Summary Title
-        add_title_slide("Project Summary")
+        project_summary_slide = add_title_slide("Project Summary")
+        add_header_footer_number(project_summary_slide, "3")
         current_slide += 1
         progress.progress(current_slide / total_slides)
 
@@ -358,26 +366,26 @@ if st.button("Generate Transition Deck"):
         # Project Dates table
         dates_headers = ["Today's Date", "Start Date", "End Date"]
         dates_rows = [[today_date, project_start, project_end]]
-        add_table_slide("Final Project Status Report – " + customer_name, 2, 3, [dates_headers] + dates_rows)
-
+        dates_slide = add_table_slide("Final Project Status Report – " + customer_name, 2, 3, [dates_headers] + dates_rows)
+        add_header_footer_number(dates_slide, "4")
         # Milestones table
         milestones_headers = ["Milestone", "Baseline Date", "Target Completion Date", "Status"]
         milestones_rows = [[m["name"], m["baseline"], m["target"], m["status"]] for m in milestones_data]
-        add_table_slide("Milestones", len(milestones_rows) + 1, 4, [milestones_headers] + milestones_rows)
-
+        milestones_slide = add_table_slide("Milestones", len(milestones_rows) + 1, 4, [milestones_headers] + milestones_rows)
+        add_header_footer_number(milestones_slide, "4")  # Same slide number if multi on one slide, but since separate, adjust if combined
         # User Rollout table
         rollout_headers = ["Milestone", "Target Users", "Current Users", "Target Completion", "Status"]
         rollout_rows = [
             ["Pilot", pilot_target, pilot_current, pilot_completion, pilot_status],
             ["Production", prod_target, prod_current, prod_completion, prod_status]
         ]
-        add_table_slide("User Rollout Roadmap", 3, 5, [rollout_headers] + rollout_rows)
-
+        rollout_slide = add_table_slide("User Rollout Roadmap", 3, 5, [rollout_headers] + rollout_rows)
+        add_header_footer_number(rollout_slide, "4")
         # Objectives table
         objectives_headers = ["Planned Project Objective (Target)", "Actual Project Result (Actual)", "Deviation/Cause"]
         objectives_rows = [[o["objective"], o["actual"], o["deviation"]] for o in objectives_data]
-        add_table_slide("Project Objectives", len(objectives_rows) + 1, 3, [objectives_headers] + objectives_rows)
-
+        objectives_slide = add_table_slide("Project Objectives", len(objectives_rows) + 1, 3, [objectives_headers] + objectives_rows)
+        add_header_footer_number(objectives_slide, "4")
         # Summary text on Slide 4 - assuming last Slide 4 table is objectives
         last_slide = prs.slides[-1]  # Last added for objectives
         summary_box = last_slide.shapes.add_textbox(Inches(0.5), Inches(5), Inches(9), Inches(1))
@@ -391,12 +399,19 @@ if st.button("Generate Transition Deck"):
         # Slide 5: Deliverables
         deliverables_headers = ["Deliverable", "Date delivered"]
         deliverables_rows = [[d["name"], d["date"]] for d in deliverables_data]
-        add_table_slide("Deliverables", len(deliverables_rows) + 1, 2, [deliverables_headers] + deliverables_rows)
+        deliverables_slide = add_table_slide("Deliverables", len(deliverables_rows) + 1, 2, [deliverables_headers] + deliverables_rows)
+        # Add check icons
+        for row_idx in range(1, len(deliverables_rows) + 1):
+            check = deliverables_slide.shapes.add_shape(MSO_SHAPE.CHECKMARK, Inches(0.3, Inches(1.5) + Inches(0.3) * (row_idx-1), Inches(0.3), Inches(0.3))
+            check.fill.solid()
+            check.fill.fore_color.rgb = RGBColor(0, 176, 80)  # Green
+        add_header_footer_number(deliverables_slide, "5")
         current_slide += 1
         progress.progress(current_slide / total_slides)
 
         # Slide 6: Technical Summary Title
-        add_title_slide("Technical Summary")
+        technical_slide = add_title_slide("Technical Summary")
+        add_header_footer_number(technical_slide, "6")
         current_slide += 1
         progress.progress(current_slide / total_slides)
 
@@ -443,13 +458,15 @@ if st.button("Generate Transition Deck"):
             p.font.size = Pt(12)
             p.font.color.rgb = RGBColor(255, 255, 255)
             p.alignment = PP_ALIGN.LEFT
+        add_header_footer_number(zia_slide, "7")
         current_slide += 1
         progress.progress(current_slide / total_slides)
 
         # Slide 8: Open Items
         open_items_headers = ["Task/ Description", "Date", "Owner", "Transition Plan/ Next Steps"]
         open_items_rows = [[oi["task"], oi["date"], oi["owner"], oi["steps"]] for oi in open_items_data]
-        add_table_slide("Open Items", len(open_items_rows) + 1, 4, [open_items_headers] + open_items_rows)
+        open_items_slide = add_table_slide("Open Items", len(open_items_rows) + 1, 4, [open_items_headers] + open_items_rows)
+        add_header_footer_number(open_items_slide, "8")
         current_slide += 1
         progress.progress(current_slide / total_slides)
 
@@ -495,6 +512,7 @@ if st.button("Generate Transition Deck"):
             p.font.size = Pt(14)
             p.font.color.rgb = RGBColor(255, 255, 255)
             p.alignment = PP_ALIGN.LEFT
+        add_header_footer_number(next_steps_slide, "9")
         current_slide += 1
         progress.progress(current_slide / total_slides)
 
@@ -523,11 +541,13 @@ if st.button("Generate Transition Deck"):
         bubble_tf.paragraphs[0].font.size = Pt(18)
         bubble_tf.paragraphs[0].font.color.rgb = RGBColor(0, 0, 0)
         bubble_tf.paragraphs[0].alignment = PP_ALIGN.CENTER
+        add_header_footer_number(thank_slide, "10")
         current_slide += 1
         progress.progress(current_slide / total_slides)
 
         # Slide 11: Final Thank You
-        add_title_slide("Thank you")
+        final_thank_slide = add_title_slide("Thank you")
+        add_header_footer_number(final_thank_slide, "11")
         current_slide += 1
         progress.progress(current_slide / total_slides)
 
