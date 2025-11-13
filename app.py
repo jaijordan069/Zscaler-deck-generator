@@ -66,19 +66,17 @@ def generate_slide_json(slide_desc, content):
 
 # Create Figma File
 @retry(wait=wait_exponential(min=1, max=10), stop=stop_after_attempt(3))
-def create_figma_file(children):
-    headers = {"X-Figma-Token": FIGMA_TOKEN}
-    payload = {
-        "document": {
-            "id": "0:0",
-            "type": "DOCUMENT",
-            "name": f"{customer_name} Transition Deck",
-            "children": children
-        }
-    }
-    response = requests.post(f"{FIGMA_BASE}/files", json=payload, headers=headers)
-    response.raise_for_status()
-    return response.json()["key"]
+def create_figma_file(children, customer_name):  
+    # Figma API doesn't support creation; output JSON for manual import  
+    json_data = {  
+        "document": {  
+            "id": "0:0",  
+            "type": "DOCUMENT",  
+            "name": f"{customer_name} Transition Deck",  
+            "children": children  
+        }  
+    }  
+    return json.dumps(json_data, indent=2)  # Pretty JSON string  
 
 # Generate Button
 if st.button("Generate Figma Deck") and FIGMA_TOKEN and openai.api_key:
@@ -107,7 +105,14 @@ if st.button("Generate Figma Deck") and FIGMA_TOKEN and openai.api_key:
             except ValidationError as e:
                 st.warning(f"Slide {i+1} validation failed: {e.message}")
         
-        file_key = create_figma_file(children)
+        json_output = create_figma_file(children, customer_name)  
+st.download_button(  
+    label="Download Figma JSON (Import Manually)",  
+    data=json_output,  
+    file_name=f"{customer_name}_deck.json",  
+    mime="application/json"  
+)  
+st.info("Figma REST API doesn't support auto-creation. Download JSON, then import via Figma plugin or desktop app (File > Import > JSON). For auto-files, switch to PPTX—ask for code!")  
         figma_url = f"https://www.figma.com/file/{file_key}"
         st.success(f"Figma file created! Edit here: {figma_url}")
         st.balloons()
