@@ -261,8 +261,7 @@ if st.button("Generate Transition Deck"):
                 p.text = bullet
                 p.level = 0
                 p.font.size = Pt(18)
-                p.font.color.rgb = RGBColor(255, 255, 255)
-                p.bullet.color.rgb = RGBColor(0, 102, 204)  # Blue bullets
+                p.font.color.rgb = RGBColor(255, 255, 255)  # Blue bullets
                 p.alignment = PP_ALIGN.LEFT
             return slide
 
