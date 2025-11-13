@@ -1,31 +1,26 @@
 import streamlit as st
-import openai
-import requests
-import json
-from jsonschema import validate, ValidationError
-from tenacity import retry, wait_exponential, stop_after_attempt
+from pptx import Presentation
+from pptx.util import Inches, Pt
+from pptx.dml.color import RGBColor
+from pptx.enum.text import PP_ALIGN
+from pptx.enum.table import MSO_TABLE_STYLE
 from datetime import datetime
-import os
-import time  # For any delays if needed
+import io
 
 # Page config
-st.set_page_config(page_title="Zscaler Transition Deck Figma Generator", layout="wide")
+st.set_page_config(page_title="Zscaler Transition Deck PPT Generator", layout="wide")
 
-# API Keys (use secrets in production)
-openai.api_key = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY"))
-FIGMA_TOKEN = st.secrets.get("FIGMA_TOKEN", os.getenv("FIGMA_TOKEN"))
-FIGMA_BASE = "https://api.figma.com/v1"
+st.title("Zscaler Professional Services Transition Deck PPT Generator")
+st.markdown("Fill in details to generate a customized PowerPoint transition meeting deck based on the provided template.")
 
-st.title("Zscaler Professional Services Transition Deck Figma Generator")
-st.markdown("Fill in details to generate a Figma file based on the template. Outputs editable frames for each slide.")
-
-# Sidebar instructions
+# Sidebar for instructions
 with st.sidebar:
     st.header("Instructions")
     st.markdown("""
-    - Enter customer data as before.
-    - Generation uses AI for layout JSON—review for tweaks.
-    - Download: Figma file URL provided.
+    - Enter customer-specific details in the form.
+    - For lists/tables (e.g., milestones, open items), use comma-separated values or multiple inputs where prompted.
+    - Dates should be in DD/MM/YYYY format.
+    - Click 'Generate Deck' to create and download the PPTX file.
     """)
 
 # Customer & Project Basics
@@ -142,101 +137,170 @@ consultant_name = col_c2.text_input("Consultant Name", value="Alex Vazquez")
 primary_contact = st.text_input("Primary Contact", value="Teia proctor")
 secondary_contact = st.text_input("Secondary Contact", value="Marco Sattier")
 
-# Figma Schema Validator
-figma_schema = {
-    "type": "object",
-    "properties": {
-        "id": {"type": "string"},
-        "type": {"enum": ["DOCUMENT", "CANVAS", "FRAME"]},
-        "children": {"type": "array"}
-    },
-    "required": ["id", "type", "children"]
-}
+# Generate button
+if st.button("Generate Transition Deck"):
+    # Create PPTX
+    prs = Presentation()
 
-# Prompt Generator for Slide JSON with JSON mode
-def generate_slide_json(slide_desc, content):
-    client = openai.OpenAI()
-    prompt = f"""
-    Generate valid Figma JSON for a slide frame based on this Zscaler template description: {slide_desc}.
-    Inject content: {content}.
-    Use blue theme (#0066CC fills, white text), tables for data, bullets for lists.
-    Output ONLY JSON: {{"id": "slide_id", "type": "FRAME", "name": "Slide Title", "children": [...]}}
-    Dimensions: 1920x1080. Include text nodes, rectangles, auto-layout where possible.
-    """
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "Output valid Figma JSON schema only. Use RGB colors (0-1 scale)."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.2,
-        response_format={"type": "json_object"}
+    # Helper function to add title slide
+    def add_title_slide(title, subtitle=None):
+        slide_layout = prs.slide_layouts[0]  # Title slide
+        slide = prs.slides.add_slide(slide_layout)
+        title_placeholder = slide.shapes.title
+        title_placeholder.text = title
+        if subtitle:
+            subtitle_placeholder = slide.placeholders[1]
+            subtitle_placeholder.text = subtitle
+
+    # Helper for bullet slide
+    def add_bullet_slide(title, bullets):
+        slide_layout = prs.slide_layouts[1]  # Title and content
+        slide = prs.slides.add_slide(slide_layout)
+        title_placeholder = slide.shapes.title
+        title_placeholder.text = title
+        content_placeholder = slide.placeholders[1]
+        tf = content_placeholder.text_frame
+        tf.clear()
+        for bullet in bullets:
+            p = tf.add_paragraph()
+            p.text = bullet
+            p.level = 0
+
+    # Helper for table slide
+    def add_table_slide(title, rows, cols, data):
+        slide_layout = prs.slide_layouts[5]  # Blank
+        slide = prs.slides.add_slide(slide_layout)
+        txBox = slide.shapes.add_textbox(Inches(0.5), Inches(1), Inches(9), Inches(5))
+        tf = txBox.text_frame
+        tf.text = title
+        tf.paragraphs[0].font.size = Pt(24)
+
+        left = Inches(0.5)
+        top = Inches(1.5)
+        width = Inches(9)
+        height = Inches(4)
+        table = slide.shapes.add_table(rows, cols, left, top, width, height).table
+
+        # Headers
+        for i, header in enumerate(data[0]):
+            table.cell(0, i).text = header
+            table.cell(0, i).fill.solid()
+            table.cell(0, i).fill.fore_color.rgb = RGBColor(0, 112, 192)  # Blue
+            table.cell(0, i).text_frame.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
+
+        # Data
+        for row_idx, row in enumerate(data[1:], 1):
+            for col_idx, cell_text in enumerate(row):
+                table.cell(row_idx, col_idx).text = str(cell_text)
+
+    # Slide 1: Title
+    add_title_slide("Professional Services Transition Meeting", f"{customer_name}\n{today_date}")
+
+    # Slide 2: Agenda
+    agenda_bullets = ["Project Summary", "Technical Summary", "Recommended Next Steps"]
+    add_bullet_slide("Meeting Agenda", agenda_bullets)
+
+    # Slide 3: Project Summary Title
+    add_title_slide("Project Summary")
+
+    # Slide 4: Project Status Report
+    # Milestones table
+    milestones_headers = ["Milestone", "Baseline Date", "Target Completion Date", "Status"]
+    milestones_rows = [[m["name"], m["baseline"], m["target"], m["status"]] for m in milestones_data]
+    add_table_slide("Final Project Status Report – " + customer_name, len(milestones_rows) + 1, 4, [milestones_headers] + milestones_rows)
+
+    # User Rollout table
+    rollout_headers = ["Milestone", "Target Users", "Current Users", "Target Completion", "Status"]
+    rollout_rows = [
+        ["Pilot", pilot_target, pilot_current, pilot_completion, pilot_status],
+        ["Production", prod_target, prod_current, prod_completion, prod_status]
+    ]
+    add_table_slide("User Rollout Roadmap", 3, 5, [rollout_headers] + rollout_rows)
+
+    # Objectives table
+    objectives_headers = ["Planned Project Objective (Target)", "Actual Project Result (Actual)", "Deviation/Cause"]
+    objectives_rows = [[o["objective"], o["actual"], o["deviation"]] for o in objectives_data]
+    add_table_slide("Project Objectives", len(objectives_rows) + 1, 3, [objectives_headers] + objectives_rows)
+
+    # Slide 5: Deliverables
+    deliverables_headers = ["Deliverable", "Date delivered"]
+    deliverables_rows = [[d["name"], d["date"]] for d in deliverables_data]
+    add_table_slide("Deliverables", len(deliverables_rows) + 1, 2, [deliverables_headers] + deliverables_rows)
+
+    # Slide 6: Technical Summary Title
+    add_title_slide("Technical Summary")
+
+    # Slide 7: Deployed ZIA Architecture - Bullets for simplicity
+    tech_bullets = [
+        f"Identity Provider: {idp}",
+        f"Authentication Type: {auth_type}",
+        f"User and Group Provisioning: {prov_type}",
+        f"Tunnel Type: {tunnel_type}",
+        f"ZCC Deployment System: {deploy_system}",
+        f"Number of Windows and MacOS Devices: {windows_num} Windows Devices, {mac_num} MacOS Devices",
+        f"Geo Locations: {geo_locations}",
+        f"SSL Inspection Policies: {ssl_policies} Policies",
+        f"URL Filtering Policies: {url_policies} Policies",
+        f"Cloud App Control Policies: {cloud_policies} Policies",
+        f"Firewall Policies: {fw_policies} Policies"
+    ]
+    add_bullet_slide("Deployed ZIA Architecture", tech_bullets)
+
+    # Slide 8: Open Items
+    open_items_headers = ["Task/Description", "Date", "Owner", "Transition Plan/Next Steps"]
+    open_items_rows = [[oi["task"], oi["date"], oi["owner"], oi["steps"]] for oi in open_items_data]
+    add_table_slide("Open Items", len(open_items_rows) + 1, 4, [open_items_headers] + open_items_rows)
+
+    # Slide 9: Recommended Next Steps
+    short_term_slide = prs.slides.add_slide(prs.slide_layouts[1])
+    short_title = short_term_slide.shapes.title
+    short_title.text = "Recommended Next Steps - Short Term Activities"
+    short_content = short_term_slide.placeholders[1]
+    short_tf = short_content.text_frame
+    short_tf.clear()
+    for item in short_term:
+        p = short_tf.add_paragraph()
+        p.text = "• " + item
+
+    long_term_slide = prs.slides.add_slide(prs.slide_layouts[1])
+    long_title = long_term_slide.shapes.title
+    long_title.text = "Recommended Next Steps - Long Term Activities"
+    long_content = long_term_slide.placeholders[1]
+    long_tf = long_content.text_frame
+    long_tf.clear()
+    for item in long_term:
+        p = long_tf.add_paragraph()
+        p.text = "• " + item
+
+    # Slide 10: Thank You
+    thank_slide = prs.slides.add_slide(prs.slide_layouts[1])
+    thank_title = thank_slide.shapes.title
+    thank_title.text = "Thank you"
+    content = thank_slide.placeholders[1]
+    tf = content.text_frame
+    tf.clear()
+    p = tf.add_paragraph()
+    p.text = f"Your feedback on our project and Professional Services team is important to us.\n\nProject Manager: {pm_name}\nConsultant: {consultant_name}\n\nA short ~6 question survey... (Primary Contact: {primary_contact}, Secondary Contact: {secondary_contact})"
+
+    # Slide 11: Final Thank You
+    add_title_slide("Thank you")
+
+    # Add Zscaler footer to all slides
+    for slide in prs.slides:
+        footer = slide.shapes.add_textbox(Inches(0.5), Inches(6.5), Inches(9), Inches(0.5))
+        f_tf = footer.text_frame
+        f_tf.text = "Zscaler, Inc. All rights reserved. © 2025"
+        f_tf.paragraphs[0].font.size = Pt(8)
+
+    # Save to bytes
+    bio = io.BytesIO()
+    prs.save(bio)
+    bio.seek(0)
+
+    st.success("Deck generated! Download below.")
+    st.download_button(
+        label="Download PPTX",
+        data=bio.getvalue(),
+        file_name=f"{customer_name}_Transition_Deck.pptx",
+        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
     )
-    return json.loads(response.choices[0].message.content)
-
-# Create Figma File as JSON (no API upload)
-def create_figma_file(children, customer_name):
-    json_data = {
-        "document": {
-            "id": "0:0",
-            "type": "DOCUMENT",
-            "name": f"{customer_name} Transition Deck",
-            "children": children
-        }
-    }
-    return json.dumps(json_data, indent=2)
-
-# Generate Button
-if st.button("Generate Figma Deck") and openai.api_key:
-    with st.spinner("Generating slides..."):
-        # Prepare dynamic content for prompts
-        milestones_str = "; ".join([f"{m['name']}: {m['baseline']}, {m['target']}, {m['status']}" for m in milestones_data])
-        objectives_str = "; ".join([f"{o['objective']}: {o['actual']}, {o['deviation']}" for o in objectives_data])
-        deliverables_str = "; ".join([f"{d['name']}: {d['date']}" for d in deliverables_data])
-        open_items_str = "; ".join([f"{oi['task']}: {oi['date']}, {oi['owner']}, {oi['steps']}" for oi in open_items_data])
-        tech_str = f"Auth: {idp}, {auth_type}; Prov: {prov_type}; Tunnel: {tunnel_type}; Deploy: {deploy_system}; Devices: {windows_num} Win, {mac_num} Mac; Geo: {geo_locations}; Policies: SSL {ssl_policies}, URL {url_policies}, Cloud {cloud_policies}, FW {fw_policies}"
-        short_str = "; ".join(short_term)
-        long_str = "; ".join(long_term)
-        contacts_str = f"PM: {pm_name}; Consultant: {consultant_name}; Primary: {primary_contact}; Secondary: {secondary_contact}"
-
-        # Define slides with descriptions and content injection
-        slides = [
-            {"desc": "Title slide: Professional Services Transition Meeting with customer name and date. Office background.", "content": f"{customer_name}, {today_date}"},
-            {"desc": "Agenda slide: Bullets for Project Summary, Technical Summary, Recommended Next Steps.", "content": "Standard agenda items"},
-            {"desc": "Project Summary title slide.", "content": ""},
-            {"desc": "Status report: Tables for milestones, rollout roadmap, objectives. Include project summary text.", "content": f"Summary: {project_summary_text}; Milestones: {milestones_str}; Rollout: Pilot {pilot_target}/{pilot_current} {pilot_status}, Prod {prod_target}/{prod_current} {prod_status}; Objectives: {objectives_str}"},
-            {"desc": "Deliverables table.", "content": f"Deliverables: {deliverables_str}"},
-            {"desc": "Technical Summary title.", "content": ""},
-            {"desc": "ZIA Architecture diagram: Boxes for auth, tunnels, policies. Use rectangles and lines.", "content": tech_str},
-            {"desc": "Open Items table.", "content": f"Open Items: {open_items_str}"},
-            {"desc": "Next Steps: Two columns for short/long term bullets.", "content": f"Short: {short_str}; Long: {long_str}"},
-            {"desc": "Thank You slide with contacts and survey note.", "content": contacts_str},
-            {"desc": "Final Thank You.", "content": ""}
-        ]
-        
-        children = []
-        for i, slide in enumerate(slides):
-            try:
-                slide_json = generate_slide_json(slide["desc"], slide["content"])
-                validate(instance=slide_json, schema=figma_schema)
-                children.append(slide_json)
-            except (ValidationError, json.JSONDecodeError) as e:
-                st.warning(f"Slide {i+1} generation failed: {str(e)[:100]}... Skipping.")
-                # Fallback simple frame
-                fallback = {"id": f"slide_{i}", "type": "FRAME", "name": f"Slide {i+1}", "children": []}
-                children.append(fallback)
-        
-        # Generate JSON output and download
-        json_output = create_figma_file(children, customer_name)
-        st.download_button(
-            label="Download Figma JSON (Import Manually)",
-            data=json_output,
-            file_name=f"{customer_name}_Transition_Deck.json",
-            mime="application/json"
-        )
-        st.info("Download the JSON above and import it into Figma using a plugin like 'JSON to Figma' for your editable deck. Update dates like 14/11/2025 as needed.")
-        st.success("Deck generated successfully! Import the JSON to Figma to view/edit the 11 slides.")
-        st.balloons()
-else:
-    st.warning("Add your OPENAI_API_KEY in app settings > Secrets to enable generation.")
-    st.info("Click 'Generate Figma Deck' once the key is set.")
