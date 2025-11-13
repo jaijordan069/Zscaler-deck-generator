@@ -3,3 +3,4 @@ openai
 requests
 jsonschema
 tenacity
+python-pptx
