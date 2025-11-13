@@ -6,7 +6,6 @@ from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.dml import MSO_FILL, MSO_PATTERN, MSO_THEME_COLOR
 from pptx.enum.shapes import MSO_CONNECTOR_TYPE
-from datetime import datetime
 import io
 import re
 import requests
@@ -515,7 +514,7 @@ if st.button("Generate Transition Deck"):
             para.alignment = PP_ALIGN.LEFT
 
         # Speech bubble
-        bubble = thank_slide.shapes.add_shape(MSO_SHAPE.CLOUD_CALL_OUT, Inches(7), Inches(3), Inches(2), Inches(1))
+        bubble = thank_slide.shapes.add_shape(MSO_SHAPE.CLOUD_CALLOUT, Inches(7), Inches(3), Inches(2), Inches(1))
         bubble.fill.solid()
         bubble.fill.fore_color.rgb = RGBColor(255, 192, 0)  # Yellow
         bubble_tf = bubble.text_frame
