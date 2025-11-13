@@ -59,7 +59,8 @@ def generate_slide_json(slide_desc, content):
             {"role": "system", "content": "Output valid Figma JSON schema only. Use RGB colors (0-1 scale)."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.2
+        temperature=0.2,
+    response_format={"type": "json_object"}
     )
     return json.loads(response.choices[0].message.content)
 
