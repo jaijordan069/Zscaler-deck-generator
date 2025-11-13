@@ -79,6 +79,11 @@ def create_figma_file(children, customer_name):
     return json.dumps(json_data, indent=2)  # Pretty JSON string  
 
 # Generate Button
+
+json_output = create_figma_file(children, customer_name)
+st.download_button("Download Figma JSON", data=json_output, file_name=f"{customer_name}_deck.json")
+st.info("Import this JSON into Figma manually via a plugin for your editable deck.")
+
 if st.button("Generate Figma Deck") and FIGMA_TOKEN and openai.api_key:
     with st.spinner("Generating slides..."):
         # Define slides with descriptions and content injection
@@ -105,7 +110,15 @@ if st.button("Generate Figma Deck") and FIGMA_TOKEN and openai.api_key:
             except ValidationError as e:
                 st.warning(f"Slide {i+1} validation failed: {e.message}")
         
-file_key = create_figma_file(children, customer_name) 
+file_key = create_figma_file(children)
+json_output = create_figma_file(children, customer_name)
+st.download_button(
+    label="Download Figma JSON (Import Manually)",
+    data=json_output,
+    file_name=f"{customer_name}_deck.json",
+    mime="application/json"
+)
+st.info("Figma REST API doesn't support auto-creation. Download JSON, then import via Figma plugin or desktop app (File > Import > JSON). For auto-files, switch to PPTX—ask for code!")
         figma_url = f"https://www.figma.com/file/{file_key}"
         st.success(f"Figma file created! Edit here: {figma_url}")
         st.balloons()
