@@ -105,14 +105,7 @@ if st.button("Generate Figma Deck") and FIGMA_TOKEN and openai.api_key:
             except ValidationError as e:
                 st.warning(f"Slide {i+1} validation failed: {e.message}")
         
-        json_output = create_figma_file(children, customer_name)  
-st.download_button(  
-    label="Download Figma JSON (Import Manually)",  
-    data=json_output,  
-    file_name=f"{customer_name}_deck.json",  
-    mime="application/json"  
-)  
-st.info("Figma REST API doesn't support auto-creation. Download JSON, then import via Figma plugin or desktop app (File > Import > JSON). For auto-files, switch to PPTX—ask for code!")  
+file_key = create_figma_file(children, customer_name) 
         figma_url = f"https://www.figma.com/file/{file_key}"
         st.success(f"Figma file created! Edit here: {figma_url}")
         st.balloons()
