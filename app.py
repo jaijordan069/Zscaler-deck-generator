@@ -335,7 +335,7 @@ if st.button("Generate Transition Deck"):
         # Add office image background
         office_url = "https://thumbs.dreamstime.com/b/large-empty-office-many-people-their-desks-busy-working-spacious-unoccupied-space-numerous-individuals-diligently-379931527.jpg"
         img_response = requests.get(office_url)
-        if img_response.status_code = 200:
+        if img_response.status_code == 200:
             img_data = io.BytesIO(img_response.content)
             title_slide.shapes.add_picture(img_data, Inches(0), Inches(0), prs.slide_width, prs.slide_height)
             # Send image to back
