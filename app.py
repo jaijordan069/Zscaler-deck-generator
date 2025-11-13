@@ -111,7 +111,7 @@ if st.button("Generate Figma Deck") and FIGMA_TOKEN and openai.api_key:
                 st.warning(f"Slide {i+1} validation failed: {e.message}")
         
 file_key = create_figma_file(children)
-     # Generate the JSON output
+    # After slide generation loop
      json_output = create_figma_file(children, customer_name)
      st.download_button(
          label="Download Figma JSON (Import Manually)",
@@ -120,10 +120,6 @@ file_key = create_figma_file(children)
          mime="application/json"
      )
      st.info("Figma REST API doesn't support auto-creation. Download JSON, then import via Figma plugin or desktop app (File > Import > JSON). For auto-files, switch to PPTX—ask for code!")
-     # Old Figma upload (commented out to avoid error)
-     # file_key = create_figma_file(children, customer_name)
-     # figma_url = f"https://www.figma.com/file/{file_key}"
-     # st.success(f"Figma file created! Edit here: {figma_url}")
      st.success("Deck JSON generated successfully! Download above and import to Figma.")
      st.balloons()
 else:
