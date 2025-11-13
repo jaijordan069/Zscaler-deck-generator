@@ -112,7 +112,8 @@ if st.button("Generate Figma Deck") and FIGMA_TOKEN and openai.api_key:
         
 file_key = create_figma_file(children)
      # Generate the JSON output
-     json_output = create_figma_file(children, customer_name)
+     
+json_output = create_figma_file(children, customer_name)
      st.download_button(
          label="Download Figma JSON (Import Manually)",
          data=json_output,
