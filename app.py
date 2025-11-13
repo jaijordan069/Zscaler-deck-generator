@@ -200,7 +200,7 @@ if st.button("Generate Transition Deck"):
         fill.gradient_stops[1].color.rgb = RGBColor(255, 255, 255)  # White
         fill.gradient_angle = 90  # Vertical fade
         fill.patterned()
-        fill.pattern = MSO_PATTERN.LIGHT_DOT
+        fill.pattern = MSO_PATTERN.DOTTED_GRID
         fill.fore_color.theme_color = MSO_THEME_COLOR.ACCENT_1
         fill.back_color.rgb = RGBColor(255, 255, 255)
 
