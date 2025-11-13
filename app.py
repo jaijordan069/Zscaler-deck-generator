@@ -297,11 +297,6 @@ if st.button("Generate Transition Deck"):
                 p.font.bold = True
                 p.font.size = Pt(14)
                 p.alignment = PP_ALIGN.LEFT
-                # Borders
-                for side in ['left', 'top', 'right', 'bottom']:
-                    line = getattr(cell.border, side)
-                    line.color.rgb = RGBColor(255, 255, 255)
-                    line.width = Pt(1)
 
             # Data
             for row_idx, row in enumerate(data[1:], 1):
@@ -318,11 +313,6 @@ if st.button("Generate Transition Deck"):
                         fill = cell.fill
                         fill.solid()
                         fill.fore_color.rgb = RGBColor(242, 242, 242)  # Light gray
-                    # Borders
-                    for side in ['left', 'top', 'right', 'bottom']:
-                        line = getattr(cell.border, side)
-                        line.color.rgb = RGBColor(255, 255, 255)
-                        line.width = Pt(1)
 
             add_header_footer_number(slide, str(len(prs.slides)))
             return slide
