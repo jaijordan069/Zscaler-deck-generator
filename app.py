@@ -383,7 +383,7 @@ if st.button("Generate Transition Deck"):
         deliverables_slide = add_table_slide("Deliverables", len(deliverables_rows) + 1, 2, [deliverables_headers] + deliverables_rows)
         # Add check icons
         for row_idx in range(1, len(deliverables_rows) + 1):
-            check = deliverables_slide.shapes.add_shape(MSO_SHAPE.ACTION_BUTTON_TICK_MARK, Inches(0.3), Inches(1.5) + Inches(0.3) * (row_idx-1), Inches(0.3), Inches(0.3))
+            check = deliverables_slide.shapes.add_shape(MSO_SHAPE.CHECKMARK, Inches(0.3), Inches(1.5) + Inches(0.3) * (row_idx-1), Inches(0.3), Inches(0.3))
             check.fill.solid()
             check.fill.fore_color.rgb = RGBColor(0, 176, 80)  # Green
         add_header_footer_number(deliverables_slide, "5")
@@ -477,7 +477,7 @@ if st.button("Generate Transition Deck"):
         short_tf.paragraphs[0].alignment = PP_ALIGN.CENTER
         for item in short_term:
             p = short_tf.add_paragraph()
-            p.text = "• " + item + "."
+            p.text = item + "."
             p.level = 0
             p.font.size = Pt(14)
             p.font.color.rgb = RGBColor(0, 0, 0)
@@ -494,7 +494,7 @@ if st.button("Generate Transition Deck"):
         long_tf.paragraphs[0].alignment = PP_ALIGN.CENTER
         for item in long_term:
             p = long_tf.add_paragraph()
-            p.text = "• " + item + "."
+            p.text = item + "."
             p.level = 0
             p.font.size = Pt(14)
             p.font.color.rgb = RGBColor(255, 255, 255)
