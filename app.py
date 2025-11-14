@@ -50,9 +50,9 @@ def is_valid_date(date_str):
 st.header("Customer & Project Basics")
 col1, col2, col3 = st.columns(3)
 customer_name = col1.text_input("Customer Name *", value="Pixartprinting", help="Enter the customer's name, e.g., Pixartprinting")
-today_date = col2.text_input("Today's Date (DD/MM/YYYY) *", value="19/09/2025", help="Enter today's date in DD/MM/YYYY format")
+today_date = col2.text_input("Today's Date (DD/MM/YYYY) *", value="14/11/2025", help="Enter today's date in DD/MM/YYYY format")
 project_start = col3.text_input("Project Start Date (DD/MM/YYYY) *", value="01/06/2025", help="Enter project start date in DD/MM/YYYY format")
-project_end = st.text_input("Project End Date (DD/MM/YYYY) *", value="19/09/2025", help="Enter project end date in DD/MM/YYYY format")
+project_end = st.text_input("Project End Date (DD/MM/YYYY) *", value="14/11/2025", help="Enter project end date in DD/MM/YYYY format")
 
 project_summary_text = st.text_area("Project Summary Text", 
     value="More than half of the users have been deployed and there were not any critical issues. Not expected issues during enrollment of remaining users",
@@ -63,10 +63,10 @@ st.header("Milestones")
 milestones_data = []
 for i in range(7):
     with st.expander(f"Milestone {i+1}", expanded=i < 1):  # Expand first by default
-        name = st.text_input(f"Milestone Name {i+1}", key=f"mname_{i}", value="Initial Project Schedule Accepted" if i == 0 else "", help="Enter milestone name")
-        baseline = st.text_input(f"Baseline Date {i+1} (DD/MM/YYYY)", key=f"mbaseline_{i}", value="27/06/2025" if i == 0 else "", help="Enter baseline date in DD/MM/YYYY format")
-        target = st.text_input(f"Target Completion {i+1} (DD/MM/YYYY)", key=f"mtarget_{i}", value="27/06/2025" if i == 0 else "", help="Enter target completion date in DD/MM/YYYY format")
-        status = st.text_input(f"Status {i+1} (e.g., Completed)", key=f"mstatus_{i}", value="" if i == 0 else "", help="Enter status, e.g., Completed or In Progress")
+        name = st.text_input(f"Milestone Name {i+1}", key=f"mname_{i}", value=["Initial Project Schedule Accepted", "Initial Design Accepted", "Pilot Configuration Complete", "Pilot Rollout Complete", "Production Configuration Complete", "Production Rollout Complete", "Final Design Accepted"][i] if i < 7 else "", help="Enter milestone name")
+        baseline = st.text_input(f"Baseline Date {i+1} (DD/MM/YYYY)", key=f"mbaseline_{i}", value=["27/06/2025", "14/07/2025", "28/07/2025", "08/08/2025", "29/08/2025", "19/09/2025", "19/09/2025"][i] if i < 7 else "", help="Enter baseline date in DD/MM/YYYY format")
+        target = st.text_input(f"Target Completion {i+1} (DD/MM/YYYY)", key=f"mtarget_{i}", value=["27/06/2025", "17/07/2025", "18/07/2025", "22/08/2025", "29/08/2025", "??", "19/09/2025"][i] if i < 7 else "", help="Enter target completion date in DD/MM/YYYY format")
+        status = st.text_input(f"Status {i+1} (e.g., Completed)", key=f"mstatus_{i}", value="" if i < 7 else "", help="Enter status, e.g., Completed or In Progress")
         if name:
             milestones_data.append({"name": name, "baseline": baseline, "target": target, "status": status})
 
@@ -77,13 +77,13 @@ with col_p1:
     st.subheader("Pilot")
     pilot_target = st.number_input("Pilot Target Users", value=100, help="Enter target number of users for pilot")
     pilot_current = st.number_input("Pilot Current Users", value=449, help="Enter current number of users in pilot")
-    pilot_completion = st.text_input("Pilot Completion Date", value="19/09/2025", help="Enter pilot completion date in DD/MM/YYYY format")
+    pilot_completion = st.text_input("Pilot Completion Date", value="14/11/2025", help="Enter pilot completion date in DD/MM/YYYY format")
     pilot_status = st.text_input("Pilot Status", value="", help="Enter pilot status, e.g., Completed")
 with col_p2:
     st.subheader("Production")
     prod_target = st.number_input("Production Target Users", value=800, help="Enter target number of users for production")
     prod_current = st.number_input("Production Current Users", value=449, help="Enter current number of users in production")
-    prod_completion = st.text_input("Production Completion Date", value="19/09/2025", help="Enter production completion date in DD/MM/YYYY format")
+    prod_completion = st.text_input("Production Completion Date", value="14/11/2025", help="Enter production completion date in DD/MM/YYYY format")
     prod_status = st.text_input("Production Status", value="", help="Enter production status, e.g., In Progress")
 
 # Project Objectives
@@ -91,9 +91,9 @@ st.header("Project Objectives")
 objectives_data = []
 for i in range(3):
     with st.expander(f"Objective {i+1}", expanded=i < 1):
-        objective = st.text_area(f"Planned Objective {i+1}", key=f"obj_{i}", height=50, value="Protect and Secure Internet Access for Users" if i == 0 else "", help="Enter the planned objective")
-        actual = st.text_area(f"Actual Result {i+1}", key=f"act_{i}", height=50, value="More than half of the users have Zscaler Client Connector deployed and are fully protected when they are outside of the corporate office" if i == 0 else "", help="Enter the actual result")
-        deviation = st.text_area(f"Deviation/Cause {i+1}", key=f"dev_{i}", height=50, value="Not enough time to deploy ZCC in all users but deployment is on track to be finished by Pixartprinting and no critical issues are expected." if i == 0 else "", help="Enter any deviation or cause")
+        objective = st.text_area(f"Planned Objective {i+1}", key=f"obj_{i}", height=50, value=["Protect and Secure Internet Access for Users", "Complete user posture", "Comprehensive Web filtering"][i] if i < 3 else "", help="Enter the planned objective")
+        actual = st.text_area(f"Actual Result {i+1}", key=f"act_{i}", height=50, value=["More than half of the users have Zscaler Client Connector deployed and are fully protected when they are outside of the corporate office", "Users and devices are identified, and policies can be applied based on this criteria", "Web filtering based on reputation and dynamic categorization rather than simply categories."][i] if i < 3 else "", help="Enter the actual result")
+        deviation = st.text_area(f"Deviation/Cause {i+1}", key=f"dev_{i}", height=50, value=["Not enough time to deploy ZCC in all users but deployment is on track to be finished by Pixartprinting and no critical issues are expected.", "No deviations", "No deviations"][i] if i < 3 else "", help="Enter any deviation or cause")
         if objective:
             objectives_data.append({"objective": objective, "actual": actual, "deviation": deviation})
 
@@ -102,8 +102,8 @@ st.header("Deliverables")
 deliverables_data = []
 for i in range(5):
     with st.expander(f"Deliverable {i+1}", expanded=i < 1):
-        name = st.text_input(f"Deliverable Name {i+1}", key=f"dname_{i}", value="Kick-Off Meeting and Slides" if i == 0 else "", help="Enter deliverable name")
-        date_del = st.text_input(f"Date Delivered {i+1}", key=f"ddate_{i}", value="27/06/2025" if i == 0 else "", help="Enter date delivered in DD/MM/YYYY format")
+        name = st.text_input(f"Deliverable Name {i+1}", key=f"dname_{i}", value=["Kick-Off Meeting and Slides", "Design and Configuration of Zscaler Platform (per scope)", "Troubleshooting Guide(s)", "Initial & Final Design Document", "Transition Meeting Slides"][i] if i < 5 else "", help="Enter deliverable name")
+        date_del = st.text_input(f"Date Delivered {i+1}", key=f"ddate_{i}", value=["27/06/2025", "30/06/2025 – 11/07/2025", "18/07/2025", "17/07/2025 – 17/09/2025", "14/11/2025"][i] if i < 5 else "", help="Enter date delivered in DD/MM/YYYY format")
         if name:
             deliverables_data.append({"name": name, "date": date_del})
 
@@ -136,10 +136,10 @@ st.header("Open Items")
 open_items_data = []
 for i in range(6):
     with st.expander(f"Open Item {i+1}", expanded=i < 1):
-        task = st.text_input(f"Task/Description {i+1}", key=f"otask_{i}", value="Finish Production rollout" if i == 0 else "", help="Enter task description")
-        o_date = st.text_input(f"Date {i+1}", key=f"odate_{i}", value="October 2025" if i == 0 else "", help="Enter date, e.g., October 2025")
-        owner = st.text_input(f"Owner {i+1}", key=f"oowner_{i}", value="Pixartprinting" if i == 0 else "", help="Enter owner, e.g., Pixartprinting")
-        steps = st.text_area(f"Transition Plan/Next Steps {i+1}", key=f"osteps_{i}", height=50, value="Onboard remaining users from all departments including Developers. " if i == 0 else "", help="Enter next steps")
+        task = st.text_input(f"Task/Description {i+1}", key=f"otask_{i}", value=["Finish Production rollout", "Tighten Firewall policies", "Tighten Cloud App Control Policies", "Fine tune SSL Inspection policies", "Configure DLP policies", "Deploy ZCC on Mobile devices"][i] if i < 6 else "", help="Enter task description")
+        o_date = st.text_input(f"Date {i+1}", key=f"odate_{i}", value=["October 2025", "October 2025", "October 2025", "November 2025", "December 2025", "January 2026"][i] if i < 6 else "", help="Enter date, e.g., October 2025")
+        owner = st.text_input(f"Owner {i+1}", key=f"oowner_{i}", value="Pixartprinting" if i < 6 else "", help="Enter owner, e.g., Pixartprinting")
+        steps = st.text_area(f"Transition Plan/Next Steps {i+1}", key=f"osteps_{i}", height=50, value=["Onboard remaining users from all departments including Developers.", "Change the default Firewall rule from Allow All to Block All after configuring all the required exceptions.", "Configure block policies for high risk applications in all categories.", "Continue adjusting and adding exclusions to SSL Inspection policies as required.", "Configure DLP policies to control sensitive data and avoid potential data leaks.", "Expand the deployment of Zscaler Client Connector to Mobile devices."][i] if i < 6 else "", help="Enter next steps")
         if task:
             open_items_data.append({"task": task, "date": o_date, "owner": owner, "steps": steps})
 
@@ -367,11 +367,11 @@ if st.button("Generate Transition Deck"):
         objectives_headers = ["Planned Project Objective (Target)", "Actual Project Result (Actual)", "Deviation/Cause"]
         objectives_rows = [[o["objective"], o["actual"], o["deviation"]] for o in objectives_data]
         objectives_slide = add_table_slide("Project Objectives", len(objectives_rows) + 1, 3, [objectives_headers] + objectives_rows)
-        # Summary text on Slide 4 - assuming last Slide 4 table is objectives
-        last_slide = prs.slides[-1]  # Last added for objectives
-        summary_box = last_slide.shapes.add_textbox(Inches(0.5), Inches(5), Inches(9), Inches(1))
+        # Summary text on Slide 4
+        summary_text = "Who: External & Internal Project Team \nWhat: Project Status Report\nWhen: Weekly\nWhy: Keeps project stakeholders informed on a weekly basis on critical aspects of the project such as scope, schedule, risks, issues, and next steps.\n\nMandatory: Yes (all projects)\n\nRAG Status Key:\nRed - Not On Track\nAmber - At Risk\nGreen - On Track\nBlue - Complete\nGray - Not Started"
+        summary_box = prs.slides[3].shapes.add_textbox(Inches(0.5), Inches(5), Inches(9), Inches(1))
         summary_tf = summary_box.text_frame
-        summary_tf.text = project_summary_text
+        summary_tf.text = summary_text
         summary_tf.paragraphs[0].font.size = Pt(14)
         summary_tf.paragraphs[0].font.color.rgb = RGBColor(0, 0, 0)
         current_slide += 1
@@ -434,11 +434,17 @@ if st.button("Generate Transition Deck"):
         # Side text boxes for technical details
         tech_box = zia_slide.shapes.add_textbox(Inches(0.5), Inches(3), Inches(4), Inches(3))
         tech_tf = tech_box.text_frame
-        tech_tf.text = f"Identity Provider: {idp}\nAuthentication Type: {auth_type}\nUser/Group Provisioning: {prov_type}\nTunnel Type: {tunnel_type}\nZCC Deployment System: {deploy_system}\nNumber of Windows Devices: {windows_num}\nNumber of MacOS Devices: {mac_num}\nGeo Locations: {geo_locations}\nSSL Inspection Policies: {ssl_policies}\nURL Filtering Policies: {url_policies}\nCloud App Control Policies: {cloud_policies}\nFirewall Policies: {fw_policies}"
+        tech_tf.text = f"Authentication Type\nIdentity Provider: {idp}\nAuthentication Type: {auth_type}\nUser/Group Provisioning: {prov_type}\nClient Deployment\nTunnel Type: {tunnel_type}\nZCC Deployment System: {deploy_system}\nNumber of Windows Devices: {windows_num}\nNumber of MacOS Devices: {mac_num}\nGeo Locations: {geo_locations}\nPolicy Deployment\nSSL Inspection Policies: {ssl_policies}\nURL Filtering Policies: {url_policies}\nCloud App Control Policies: {cloud_policies}\nFirewall Policies: {fw_policies}"
         for p in tech_tf.paragraphs:
             p.font.size = Pt(12)
             p.font.color.rgb = RGBColor(255, 255, 255)
             p.alignment = PP_ALIGN.LEFT
+        # Additional text box for overview
+        overview_box = zia_slide.shapes.add_textbox(Inches(0.5), Inches(6), Inches(9), Inches(0.5))
+        overview_tf = overview_box.text_frame
+        overview_tf.text = "An overview of the deployed architecture and key facts - diagram stays generic (custom diagram will be in design document)\nNumbers on the diagram help to orient the conversation,"
+        overview_tf.paragraphs[0].font.size = Pt(14)
+        overview_tf.paragraphs[0].font.color.rgb = RGBColor(0, 0, 0)
         add_header_footer_number(zia_slide, "7")
         current_slide += 1
         progress.progress(current_slide / total_slides)
@@ -471,7 +477,7 @@ if st.button("Generate Transition Deck"):
         short_tf.paragraphs[0].alignment = PP_ALIGN.CENTER
         for item in short_term:
             p = short_tf.add_paragraph()
-            p.text = "• " + item
+            p.text = item
             p.level = 0
             p.font.size = Pt(14)
             p.font.color.rgb = RGBColor(0, 0, 0)
@@ -488,11 +494,65 @@ if st.button("Generate Transition Deck"):
         long_tf.paragraphs[0].alignment = PP_ALIGN.CENTER
         for item in long_term:
             p = long_tf.add_paragraph()
-            p.text = "• " + item
+            p.text = item
             p.level = 0
             p.font.size = Pt(14)
             p.font.color.rgb = RGBColor(255, 255, 255)
             p.alignment = PP_ALIGN.LEFT
+        # Additional text box for note
+        note_box = next_steps_slide.shapes.add_textbox(Inches(0.5), Inches(5.5), Inches(9), Inches(0.5))
+        note_tf = note_box.text_frame
+        note_tf.text = "Next Short- and Long-Term Activities\nIf additional resources and/or expertise are required to complete any of the recommendations above, customer should consider engaging Zscaler Professional Services to assist with this effort."
+        note_tf.paragraphs[0].font.size = Pt(14)
+        note_tf.paragraphs[0].font.color.rgb = RGBColor(0, 0, 0)
         add_header_footer_number(next_steps_slide, "9")
         current_slide += 1
-        progress.progress(current
+        progress.progress(current_slide / total_slides)
+
+        # Slide 10: Thank You
+        thank_slide = prs.slides.add_slide(prs.slide_layouts[1])
+        thank_title = thank_slide.shapes.title
+        thank_title.text = "Thank you"
+        thank_title.text_frame.paragraphs[0].font.size = Pt(44)
+        thank_title.text_frame.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
+        content = thank_slide.placeholders[1]
+        tf = content.text_frame
+        tf.clear()
+        p = tf.add_paragraph()
+        p.text = f"Your feedback on our project and Professional Services team is important to us. \nProject Manager: {pm_name}\nConsultant: {consultant_name}\nA short ~6 question survey on how your Professional Services team did will be automatically sent after the project has closed. The following people will receive the survey via email:\nPrimary Contact: {primary_contact}\nSecondary Contact: {secondary_contact}\nWe appreciate any insights you can provide to help us improve our processes and ensure we provide the best possible service in future projects."
+        for para in tf.paragraphs:
+            para.font.size = Pt(14)
+            para.font.color.rgb = RGBColor(0, 0, 0)
+            para.alignment = PP_ALIGN.LEFT
+
+        # Speech bubble
+        bubble = thank_slide.shapes.add_shape(MSO_SHAPE.CLOUD_CALLOUT, Inches(7), Inches(3), Inches(2), Inches(1))
+        bubble.fill.solid()
+        bubble.fill.fore_color.rgb = RGBColor(255, 192, 0)  # Yellow
+        bubble_tf = bubble.text_frame
+        bubble_tf.text = "We want to know!"
+        bubble_tf.paragraphs[0].font.size = Pt(18)
+        bubble_tf.paragraphs[0].font.color.rgb = RGBColor(0, 0, 0)
+        bubble_tf.paragraphs[0].alignment = PP_ALIGN.CENTER
+        add_header_footer_number(thank_slide, "10")
+        current_slide += 1
+        progress.progress(current_slide / total_slides)
+
+        # Slide 11: Final Thank You
+        final_thank_slide = add_title_slide("Thank you")
+        add_header_footer_number(final_thank_slide, "11")
+        current_slide += 1
+        progress.progress(current_slide / total_slides)
+
+        # Save to bytes
+        bio = io.BytesIO()
+        prs.save(bio)
+        bio.seek(0)
+
+        st.success("Deck generated successfully! Download below.")
+        st.download_button(
+            label="Download PPTX",
+            data=bio.getvalue(),
+            file_name=f"{customer_name}_Transition_Deck.pptx",
+            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        )
