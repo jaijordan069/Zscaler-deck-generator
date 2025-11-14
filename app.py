@@ -519,7 +519,7 @@ if st.button("Generate Transition Deck"):
         tf = content.text_frame
         tf.clear()
         p = tf.add_paragraph()
-        p.text = f"Your feedback on our project and Professional Services team is important to us. \n\nProject Manager: {pm_name}\nConsultant: {consultant_name}\n\nA short ~6 question survey on how your Professional Services team did will be automatically sent after the project has closed. The following people will receive the survey via email:\n\nPrimary Contact: {primary_contact}\nSecondary Contact: {secondary_contact}\nWe appreciate any insights you can provide to help us improve our processes and ensure we provide the best possible service in future projects."
+        p.text = f"Your feedback on our project and Professional Services team is important to us. \nProject Manager: {pm_name}\nConsultant: {consultant_name}\nA short ~6 question survey on how your Professional Services team did will be automatically sent after the project has closed. The following people will receive the survey via email:\nPrimary Contact: {primary_contact}\nSecondary Contact: {secondary_contact}\nWe appreciate any insights you can provide to help us improve our processes and ensure we provide the best possible service in future projects."
         for para in tf.paragraphs:
             para.font.size = Pt(14)
             para.font.color.rgb = RGBColor(0, 0, 0)
