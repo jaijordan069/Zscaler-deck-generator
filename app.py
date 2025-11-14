@@ -49,10 +49,10 @@ def is_valid_date(date_str):
 # Customer & Project Basics
 st.header("Customer & Project Basics")
 col1, col2, col3 = st.columns(3)
-customer_name = col1.text_input("Customer Name *", value="PIXARTPRINTING", help="Enter the customer's name, e.g., PIXARTPRINTING")
-today_date = col2.text_input("Today's Date (DD/MM/YYYY) *", value="19/09/2025", help="Enter today's date in DD/MM/YYYY format")
+customer_name = col1.text_input("Customer Name *", value="Pixartprinting", help="Enter the customer's name, e.g., Pixartprinting")
+today_date = col2.text_input("Today's Date (DD/MM/YYYY) *", value="14/11/2025", help="Enter today's date in DD/MM/YYYY format")
 project_start = col3.text_input("Project Start Date (DD/MM/YYYY) *", value="01/06/2025", help="Enter project start date in DD/MM/YYYY format")
-project_end = st.text_input("Project End Date (DD/MM/YYYY) *", value="19/09/2025", help="Enter project end date in DD/MM/YYYY format")
+project_end = st.text_input("Project End Date (DD/MM/YYYY) *", value="14/11/2025", help="Enter project end date in DD/MM/YYYY format")
 
 project_summary_text = st.text_area("Project Summary Text", 
     value="More than half of the users have been deployed and there were not any critical issues. Not expected issues during enrollment of remaining users",
@@ -63,10 +63,10 @@ st.header("Milestones")
 milestones_data = []
 for i in range(7):
     with st.expander(f"Milestone {i+1}", expanded=i < 1):  # Expand first by default
-        name = st.text_input(f"Milestone Name {i+1}", key=f"mname_{i}", value=["Initial Project Schedule Accepted", "Initial Design Accepted", "Pilot Configuration Complete", "Pilot Rollout Complete", "Production Configuration Complete", "Production Rollout Complete", "Final Design Accepted"][i] if i < 7 else "", help="Enter milestone name")
-        baseline = st.text_input(f"Baseline Date {i+1} (DD/MM/YYYY)", key=f"mbaseline_{i}", value=["27/06/2025", "14/07/2025", "28/07/2025", "08/08/2025", "29/08/2025", "19/09/2025", "19/09/2025"][i] if i < 7 else "", help="Enter baseline date in DD/MM/YYYY format")
-        target = st.text_input(f"Target Completion {i+1} (DD/MM/YYYY)", key=f"mtarget_{i}", value=["27/06/2025", "17/07/2025", "18/07/2025", "22/08/2025", "29/08/2025", "??", "19/09/2025"][i] if i < 7 else "", help="Enter target completion date in DD/MM/YYYY format")
-        status = st.text_input(f"Status {i+1} (e.g., Completed)", key=f"mstatus_{i}", value=["", "", "", "", "", "", ""][i] if i < 7 else "", help="Enter status, e.g., Completed or In Progress")
+        name = st.text_input(f"Milestone Name {i+1}", key=f"mname_{i}", help="Enter milestone name")
+        baseline = st.text_input(f"Baseline Date {i+1} (DD/MM/YYYY)", key=f"mbaseline_{i}", help="Enter baseline date in DD/MM/YYYY format")
+        target = st.text_input(f"Target Completion {i+1} (DD/MM/YYYY)", key=f"mtarget_{i}", help="Enter target completion date in DD/MM/YYYY format")
+        status = st.text_input(f"Status {i+1} (e.g., Completed)", key=f"mstatus_{i}", help="Enter status, e.g., Completed or In Progress")
         if name:
             milestones_data.append({"name": name, "baseline": baseline, "target": target, "status": status})
 
@@ -77,23 +77,23 @@ with col_p1:
     st.subheader("Pilot")
     pilot_target = st.number_input("Pilot Target Users", value=100, help="Enter target number of users for pilot")
     pilot_current = st.number_input("Pilot Current Users", value=449, help="Enter current number of users in pilot")
-    pilot_completion = st.text_input("Pilot Completion Date", value="19/09/2025", help="Enter pilot completion date in DD/MM/YYYY format")
-    pilot_status = st.text_input("Pilot Status", value="", help="Enter pilot status, e.g., Completed")
+    pilot_completion = st.text_input("Pilot Completion Date", value="14/11/2025", help="Enter pilot completion date in DD/MM/YYYY format")
+    pilot_status = st.text_input("Pilot Status", value="Completed", help="Enter pilot status, e.g., Completed")
 with col_p2:
     st.subheader("Production")
     prod_target = st.number_input("Production Target Users", value=800, help="Enter target number of users for production")
     prod_current = st.number_input("Production Current Users", value=449, help="Enter current number of users in production")
-    prod_completion = st.text_input("Production Completion Date", value="19/09/2025", help="Enter production completion date in DD/MM/YYYY format")
-    prod_status = st.text_input("Production Status", value="", help="Enter production status, e.g., In Progress")
+    prod_completion = st.text_input("Production Completion Date", value="14/11/2025", help="Enter production completion date in DD/MM/YYYY format")
+    prod_status = st.text_input("Production Status", value="In Progress", help="Enter production status, e.g., In Progress")
 
 # Project Objectives
 st.header("Project Objectives")
 objectives_data = []
 for i in range(3):
     with st.expander(f"Objective {i+1}", expanded=i < 1):
-        objective = st.text_area(f"Planned Objective {i+1}", key=f"obj_{i}", height=50, value=["Protect and Secure Internet Access for Users", "Complete user posture", "Comprehensive Web filtering"][i] if i < 3 else "", help="Enter the planned objective")
-        actual = st.text_area(f"Actual Result {i+1}", key=f"act_{i}", height=50, value=["More than half of the users have Zscaler Client Connector deployed and are fully protected when they are outside of the corporate office", "Users and devices are identified, and policies can be applied based on this criteria", "Web filtering based on reputation and dynamic categorization rather than simply categories."][i] if i < 3 else "", help="Enter the actual result")
-        deviation = st.text_area(f"Deviation/Cause {i+1}", key=f"dev_{i}", height=50, value=["Not enough time to deploy ZCC in all users but deployment is on track to be finished by Pixartprinting and no critical issues are expected.", "No deviations", "No deviations"][i] if i < 3 else "", help="Enter any deviation or cause")
+        objective = st.text_area(f"Planned Objective {i+1}", key=f"obj_{i}", height=50, help="Enter the planned objective")
+        actual = st.text_area(f"Actual Result {i+1}", key=f"act_{i}", height=50, help="Enter the actual result")
+        deviation = st.text_area(f"Deviation/Cause {i+1}", key=f"dev_{i}", height=50, help="Enter any deviation or cause")
         if objective:
             objectives_data.append({"objective": objective, "actual": actual, "deviation": deviation})
 
@@ -102,8 +102,8 @@ st.header("Deliverables")
 deliverables_data = []
 for i in range(5):
     with st.expander(f"Deliverable {i+1}", expanded=i < 1):
-        name = st.text_input(f"Deliverable Name {i+1}", key=f"dname_{i}", value=["Kick-Off Meeting and Slides", "Design and Configuration of Zscaler Platform (per scope)", "Troubleshooting Guide(s)", "Initial & Final Design Document", "Transition Meeting Slides"][i] if i < 5 else "", help="Enter deliverable name")
-        date_del = st.text_input(f"Date Delivered {i+1}", key=f"ddate_{i}", value=["27/06/2025", "30/06/2025 – 11/07/2025", "18/07/2025", "17/07/2025 – 17/09/2025", "19/09/2025"][i] if i < 5 else "", help="Enter date delivered in DD/MM/YYYY format")
+        name = st.text_input(f"Deliverable Name {i+1}", key=f"dname_{i}", help="Enter deliverable name")
+        date_del = st.text_input(f"Date Delivered {i+1}", key=f"ddate_{i}", help="Enter date delivered in DD/MM/YYYY format")
         if name:
             deliverables_data.append({"name": name, "date": date_del})
 
@@ -136,10 +136,10 @@ st.header("Open Items")
 open_items_data = []
 for i in range(6):
     with st.expander(f"Open Item {i+1}", expanded=i < 1):
-        task = st.text_input(f"Task/Description {i+1}", key=f"otask_{i}", value=["Finish Production rollout", "Tighten Firewall policies", "Tighten Cloud App Control Policies", "Fine tune SSL Inspection policies", " Configure DLP policies", "Deploy ZCC on Mobile devices"][i] if i < 6 else "", help="Enter task description")
-        o_date = st.text_input(f"Date {i+1}", key=f"odate_{i}", value=["October 2025", "October 2025", "October 2025", "November 2025", "December 2025", "January 2026"][i] if i < 6 else "", help="Enter date, e.g., October 2025")
-        owner = st.text_input(f"Owner {i+1}", key=f"oowner_{i}", value="Pixartprinting" if i < 6 else "", help="Enter owner, e.g., Pixartprinting")
-        steps = st.text_area(f"Transition Plan/Next Steps {i+1}", key=f"osteps_{i}", height=50, value=["Onboard remaining users from all departments including Developers.", "Change the default Firewall rule from Allow All to Block All after configuring all the required exceptions.", "Configure block policies for high risk applications in all categories.", "Continue adjusting and adding exclusions to SSL Inspection policies as required.", "Configure DLP policies to control sensitive data and avoid potential data leaks.", "Expand the deployment of Zscaler Client Connector to Mobile devices."][i] if i < 6 else "", help="Enter next steps")
+        task = st.text_input(f"Task/Description {i+1}", key=f"otask_{i}", help="Enter task description")
+        o_date = st.text_input(f"Date {i+1}", key=f"odate_{i}", help="Enter date, e.g., October 2025")
+        owner = st.text_input(f"Owner {i+1}", key=f"oowner_{i}", help="Enter owner, e.g., Pixartprinting")
+        steps = st.text_area(f"Transition Plan/Next Steps {i+1}", key=f"osteps_{i}", height=50, help="Enter next steps")
         if task:
             open_items_data.append({"task": task, "date": o_date, "owner": owner, "steps": steps})
 
@@ -205,14 +205,7 @@ if st.button("Generate Transition Deck"):
 
         # Helper function to add header, footer, slide number to each slide
         def add_header_footer_number(slide, slide_num_str):
-            # Zscaler logo left
-            logo_url = "https://companieslogo.com/img/orig/ZS-46a5871c.png?t=1720244494"
-            img_response = requests.get(logo_url)
-            if img_response.status_code == 200:
-                img_data = io.BytesIO(img_response.content)
-                slide.shapes.add_picture(img_data, Inches(0.5), Inches(0), Inches(1.5), Inches(0.5))
-
-            # PROSERVE right
+            # PROSERVE header
             header = slide.shapes.add_textbox(Inches(8), Inches(0), Inches(2), Inches(0.5))
             header_tf = header.text_frame
             header_tf.text = "PROSERVE"
@@ -268,7 +261,7 @@ if st.button("Generate Transition Deck"):
                 p.text = bullet
                 p.level = 0
                 p.font.size = Pt(18)
-                p.font.color.rgb = RGBColor(0, 0, 0)
+                p.font.color.rgb = RGBColor(255, 255, 255)
                 p.alignment = PP_ALIGN.LEFT
             add_header_footer_number(slide, str(len(prs.slides)))
             return slide
@@ -390,7 +383,7 @@ if st.button("Generate Transition Deck"):
         deliverables_slide = add_table_slide("Deliverables", len(deliverables_rows) + 1, 2, [deliverables_headers] + deliverables_rows)
         # Add check icons
         for row_idx in range(1, len(deliverables_rows) + 1):
-            check = deliverables_slide.shapes.add_shape(MSO_SHAPE.CHECKMARK, Inches(0.3), Inches(1.5) + Inches(0.3) * (row_idx-1), Inches(0.3), Inches(0.3))
+            check = deliverables_slide.shapes.add_shape(MSO_SHAPE.CHECK_MARK, Inches(0.3), Inches(1.5) + Inches(0.3) * (row_idx-1), Inches(0.3), Inches(0.3))
             check.fill.solid()
             check.fill.fore_color.rgb = RGBColor(0, 176, 80)  # Green
         add_header_footer_number(deliverables_slide, "5")
@@ -484,7 +477,7 @@ if st.button("Generate Transition Deck"):
         short_tf.paragraphs[0].alignment = PP_ALIGN.CENTER
         for item in short_term:
             p = short_tf.add_paragraph()
-            p.text = item + "."
+            p.text = "• " + item + "."
             p.level = 0
             p.font.size = Pt(14)
             p.font.color.rgb = RGBColor(0, 0, 0)
@@ -501,7 +494,7 @@ if st.button("Generate Transition Deck"):
         long_tf.paragraphs[0].alignment = PP_ALIGN.CENTER
         for item in long_term:
             p = long_tf.add_paragraph()
-            p.text = item + "."
+            p.text = "• " + item + "."
             p.level = 0
             p.font.size = Pt(14)
             p.font.color.rgb = RGBColor(255, 255, 255)
