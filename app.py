@@ -167,4 +167,141 @@ st.header("Open Items")
 open_items_data = []
 open_defaults = [
     {"task": "Finish Production rollout", "date": "October 2025", "owner": "Pixartprinting", "steps": "Onboard remaining users from all departments including Developers."},
-    {"task": "Tighten Firewall policies",
+    {"task": "Tighten Firewall policies", "date": "October 2025", "owner": "Pixartprinting", "steps": "Change the default Firewall rule from Allow All to Block All after configuring all the required exceptions."},
+    {"task": "Tighten Cloud App Control Policies", "date": "October 2025", "owner": "Pixartprinting", "steps": "Configure block policies for high risk applications in all categories."},
+    {"task": "Fine tune SSL Inspection policies", "date": "November 2025", "owner": "Pixartprinting", "steps": "Continue adjusting and adding exclusions to SSL Inspection policies as required."},
+    {"task": "Configure DLP policies", "date": "December 2025", "owner": "Pixartprinting", "steps": "Configure DLP policies to control sensitive data and avoid potential data leaks."},
+    {"task": "Deploy ZCC on Mobile devices", "date": "January 2026", "owner": "Pixartprinting", "steps": "Expand the deployment of Zscaler Client Connector to Mobile devices."}
+]
+for i in range(6):
+    with st.expander(f"Open Item {i+1}", expanded=True):
+        task = st.text_input(f"Task/Description {i+1}", key=f"otask_{i}", value=open_defaults[i]["task"])
+        o_date = st.text_input(f"Date {i+1}", key=f"odate_{i}", value=open_defaults[i]["date"])
+        owner = st.text_input(f"Owner {i+1}", key=f"oowner_{i}", value=open_defaults[i]["owner"])
+        steps = st.text_area(f"Transition Plan/Next Steps {i+1}", key=f"osteps_{i}", height=50, value=open_defaults[i]["steps"])
+        if task:
+            open_items_data.append({"task": task, "date": o_date, "owner": owner, "steps": steps})
+
+# Recommended Next Steps
+st.header("Recommended Next Steps")
+st.subheader("Short Term Activities")
+short_term_input = st.text_area("Short Term (comma-separated)", value="Finish Production rollout, Tighten Firewall policies, Tighten Cloud App Control Policies, Fine tune SSL Inspection policies, Configure Role Based Access Control (RBAC), Configure DLP policies")
+short_term = [item.strip() for item in short_term_input.split(",") if item.strip()]
+st.subheader("Long Term Activities")
+long_term_input = st.text_area("Long Term (comma-separated)", value="Deploy ZCC on Mobile devices, Consider an upgrade of Sandbox license to have better antimalware protection, Consider an upgrade of the Firewall License to be able to apply policies based on user groups and network applications, Adopt additional Zscaler solutions like Zscaler Private Access (ZPA) or Zscaler Digital experience (ZDX), Consider using ZCC Client when the users are on-prem for a more consistent user experience, Integrate ZIA with 3rd party SIEM")
+long_term = [item.strip() for item in long_term_input.split(",") if item.strip()]
+
+# Contacts
+st.header("Contacts")
+col_c1, col_c2 = st.columns(2)
+pm_name = col_c1.text_input("Project Manager Name", value="Alex Vazquez")
+consultant_name = col_c2.text_input("Consultant Name", value="Alex Vazquez")
+primary_contact = st.text_input("Primary Contact", value="Teia proctor")
+secondary_contact = st.text_input("Secondary Contact", value="Marco Sattier")
+
+team_members = st.text_area("Team Members (Name, Position, one per line)", value="John Doe, Project Manager\nJane Smith, Security Architect")
+objectives = st.text_area("Key Objectives (one per line)", value="Objective 1\nObjective 2\nObjective 3")
+milestones = st.text_area("Milestones (YYYY-MM-DD: Description, one per line)", value="2025-01-01: Kickoff\n2025-03-01: Implementation\n2025-06-01: Go-Live")
+
+# Preview Summary
+if st.button("Preview Summary"):
+    st.write(f"Deck for {customer_name} on {today_date}:")
+    st.write(f"- Project Summary: {project_summary_text[:100]}...")
+    st.write(f"- {len(milestones_data)} Milestones (e.g., {milestones_data[0]['name'] if milestones_data else 'None'})")
+    st.write(f"- Pilot Rollout: {pilot_current}/{pilot_target} users, Status: {pilot_status}")
+    st.write(f"- Production Rollout: {prod_current}/{prod_target} users, Status: {prod_status}")
+    st.write(f"- {len(objectives_data)} Objectives (e.g., {objectives_data[0]['objective'] if objectives_data else 'None'})")
+    st.write(f"- {len(deliverables_data)} Deliverables (e.g., {deliverables_data[0]['name'] if deliverables_data else 'None'})")
+    st.write(f"- Technical: {windows_num} Windows, {mac_num} MacOS, Geo: {geo_locations}, Policies: SSL {ssl_policies}, URL {url_policies}, Cloud {cloud_policies}, FW {fw_policies}")
+    st.write(f"- {len(open_items_data)} Open Items (e.g., {open_items_data[0]['task'] if open_items_data else 'None'})")
+    st.write(f"- Short Term: {len(short_term)} items (e.g., {short_term[0] if short_term else 'None'})")
+    st.write(f"- Long Term: {len(long_term)} items (e.g., {long_term[0] if long_term else 'None'})")
+    st.write(f"- Contacts: PM {pm_name}, Consultant {consultant_name}, Primary {primary_contact}, Secondary {secondary_contact}")
+
+# Generate button
+if st.button("Generate Transition Deck"):
+    # Validation
+    if not customer_name:
+        st.error("Customer Name is required.")
+    elif not all(is_valid_date(d) for d in [today_date, project_start, project_end] + [m["baseline"] for m in milestones_data if m["baseline"]] + [m["target"] for m in milestones_data if m["target"]] + [pilot_completion, prod_completion] + [d["date"] for d in deliverables_data if d["date"]] + [oi["date"] for oi in open_items_data if oi["date"]]):
+        st.error("All dates must be in DD/MM/YYYY format.")
+    else:
+        # Create PPTX
+        prs = Presentation()
+        # Helper to set background
+        def set_background(slide):
+            fill = slide.background.fill
+            fill.solid()
+            fill.fore_color.rgb = WHITE
+
+        # Helper to add logo, footer, slide number
+        def add_logo_footer_number(slide, slide_num):
+            # Logo top right
+            try:
+                img_response = requests.get(LOGO_URL)
+                img_data = io.BytesIO(img_response.content)
+                slide.shapes.add_picture(img_data, Inches(11), Inches(0), Inches(1.5), Inches(0.5))
+            except:
+                pass  # Skip fallback to ensure image only
+
+            # Footer left
+            txBox = slide.shapes.add_textbox(Inches(0.5), Inches(7), Inches(8), Inches(0.3))
+            tf = txBox.text_frame
+            p = tf.add_paragraph()
+            p.text = "Zscaler, Inc. All rights reserved. © 2025"
+            p.alignment = PP_ALIGN.LEFT
+            p.font.name = 'Century Gothic'
+            p.font.size = Pt(8)
+            p.font.color.rgb = NAVY
+
+            # Slide number right
+            txBox = slide.shapes.add_textbox(Inches(12), Inches(7), Inches(0.5), Inches(0.3))
+            tf = txBox.text_frame
+            p = tf.add_paragraph()
+            p.text = str(slide_num)
+            p.alignment = PP_ALIGN.RIGHT
+            p.font.name = 'Century Gothic'
+            p.font.size = Pt(8)
+            p.font.color.rgb = NAVY
+
+        # Helper for title slide
+        def add_title_slide(title, subtitle=None, date=None):
+            slide = prs.slides.add_slide(prs.slide_layouts[6])  # Blank
+            set_background(slide)
+            # Title
+            txBox = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(8), Inches(1))
+            tf = txBox.text_frame
+            p = tf.add_paragraph()
+            p.text = title.title()
+            p.font.name = 'Century Gothic'
+            p.font.size = Pt(36)
+            p.font.bold = True
+            p.font.color.rgb = NAVY
+            p.alignment = PP_ALIGN.LEFT
+            if subtitle:
+                subBox = slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(8), Inches(1))
+                sub_tf = subBox.text_frame
+                sub_p = sub_tf.add_paragraph()
+                sub_p.text = subtitle.capitalize()
+                sub_p.font.name = 'Century Gothic'
+                sub_p.font.size = Pt(28)
+                sub_p.font.color.rgb = NAVY
+                sub_p.alignment = PP_ALIGN.LEFT
+            if date:
+                dateBox = slide.shapes.add_textbox(Inches(0.5), Inches(2.5), Inches(8), Inches(0.5))
+                date_tf = dateBox.text_frame
+                date_p = date_tf.add_paragraph()
+                date_p.text = date
+                date_p.font.name = 'Century Gothic'
+                date_p.font.size = Pt(20)
+                date_p.font.color.rgb = NAVY
+                date_p.alignment = PP_ALIGN.LEFT
+            add_logo_footer_number(slide, len(prs.slides))
+            return slide
+
+        # Helper for bullet slide
+        def add_bullet_slide(title, bullets):
+            slide = prs.slides.add_slide(prs.slide_layouts[6])
+            set_background(slide)
+            # Title
+            txBox =
