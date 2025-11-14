@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Streamlit app: Zscaler Professional Services Transition Deck PPT Generator
-Patched to avoid AttributeError on Run internals by using a safe set_font_run implementation.
+Patched to avoid AttributeError on Run internals and the table column width TypeError.
 This file is a full standalone app.py you can drop into your project to replace the broken file.
 """
 
@@ -379,7 +379,10 @@ if st.button("Generate Transition Deck"):
         table_shape = slide.shapes.add_table(rows_count, cols, left, top, width, height)
         table = table_shape.table
 
-        colw = (width) / cols
+        # IMPORTANT FIX:
+        # python-pptx requires an integer (EMU) for column width; dividing a Length gives a float.
+        # Convert to int to avoid TypeError: value must be an integral type, got <class 'float'>
+        colw = int(width / cols)
         for i in range(cols):
             table.columns[i].width = colw
 
@@ -529,7 +532,6 @@ if st.button("Generate Transition Deck"):
     add_textbox(slide4, MARGIN_LEFT, MARGIN_TOP, Inches(9.0), Inches(0.6), f"Final Project Status Report – {customer_name}", size=SIZE_SLIDE_TITLE, bold=True, color=COLOR_NAVY)
     add_textbox(slide4, MARGIN_LEFT, Inches(1.2), Inches(9.5), Inches(0.35), "Project Summary", size=SIZE_HEADER, bold=True)
     add_textbox(slide4, MARGIN_LEFT, Inches(1.6), Inches(9.5), Inches(0.6), project_summary_text, size=SIZE_BODY, bold=False)
-    # Add mini dates table as separate slide for layout fidelity
     step += 1
     progress_bar.progress(step / slide_count)
 
