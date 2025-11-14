@@ -62,9 +62,9 @@ def is_valid_date(date_str):
 st.header("Customer & Project Basics")
 col1, col2, col3 = st.columns(3)
 customer_name = col1.text_input("Customer Name *", value="Pixartprinting", help="Enter the customer's name, e.g., Pixartprinting")
-today_date = col2.text_input("Today's Date (DD/MM/YYYY) *", value="19/09/2025", help="Enter today's date in DD/MM/YYYY format")
+today_date = col2.text_input("Today's Date (DD/MM/YYYY) *", value="14/11/2025", help="Enter today's date in DD/MM/YYYY format")
 project_start = col3.text_input("Project Start Date (DD/MM/YYYY) *", value="01/06/2025", help="Enter project start date in DD/MM/YYYY format")
-project_end = st.text_input("Project End Date (DD/MM/YYYY) *", value="19/09/2025", help="Enter project end date in DD/MM/YYYY format")
+project_end = st.text_input("Project End Date (DD/MM/YYYY) *", value="14/11/2025", help="Enter project end date in DD/MM/YYYY format")
 project_summary_text = st.text_area("Project Summary Text",
     value="More than half of the users have been deployed and there were not any critical issues. Not expected issues during enrollment of remaining users",
     help="Provide a brief project summary")
@@ -79,8 +79,8 @@ milestone_defaults = [
     {"name": "Pilot Configuration Complete", "baseline": "28/07/2025", "target": "18/07/2025", "status": ""},
     {"name": "Pilot Rollout Complete", "baseline": "08/08/2025", "target": "22/08/2025", "status": ""},
     {"name": "Production Configuration Complete", "baseline": "29/08/2025", "target": "29/08/2025", "status": ""},
-    {"name": "Production Rollout Complete", "baseline": "19/09/2025", "target": "??", "status": ""},
-    {"name": "Final Design Accepted", "baseline": "19/09/2025", "target": "19/09/2025", "status": ""}
+    {"name": "Production Rollout Complete", "baseline": "14/11/2025", "target": "??", "status": ""},
+    {"name": "Final Design Accepted", "baseline": "14/11/2025", "target": "14/11/2025", "status": ""}
 ]
 for i in range(7):
     with st.expander(f"Milestone {i+1}", expanded=True):
@@ -98,13 +98,13 @@ with col_p1:
     st.subheader("Pilot")
     pilot_target = st.number_input("Pilot Target Users", value=100)
     pilot_current = st.number_input("Pilot Current Users", value=449)
-    pilot_completion = st.text_input("Pilot Completion Date", value="19/09/2025")
+    pilot_completion = st.text_input("Pilot Completion Date", value="14/11/2025")
     pilot_status = st.text_input("Pilot Status", value="")
 with col_p2:
     st.subheader("Production")
     prod_target = st.number_input("Production Target Users", value=800)
     prod_current = st.number_input("Production Current Users", value=449)
-    prod_completion = st.text_input("Production Completion Date", value="19/09/2025")
+    prod_completion = st.text_input("Production Completion Date", value="14/11/2025")
     prod_status = st.text_input("Production Status", value="")
 
 # Project Objectives
@@ -242,9 +242,9 @@ if st.button("Generate Transition Deck"):
                 img_data = io.BytesIO(img_response.content)
                 slide.shapes.add_picture(img_data, Inches(11), Inches(0), Inches(1.5), Inches(0.5))
             except:
-                pass  # Skip fallback to ensure image only
+                pass  # Skip if fails, but logo should load
 
-            # Footer left
+            # Footer left, adjusted for visibility
             txBox = slide.shapes.add_textbox(Inches(0.5), Inches(7), Inches(8), Inches(0.3))
             tf = txBox.text_frame
             p = tf.add_paragraph()
@@ -304,4 +304,446 @@ if st.button("Generate Transition Deck"):
             slide = prs.slides.add_slide(prs.slide_layouts[6])
             set_background(slide)
             # Title
-            txBox =
+            txBox = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(8), Inches(0.5))
+            tf = txBox.text_frame
+            p = tf.add_paragraph()
+            p.text = title.title()
+            p.font.name = 'Century Gothic'
+            p.font.size = Pt(28)
+            p.font.bold = True
+            p.font.color.rgb = NAVY
+            # Bullets
+            top = Inches(1.5)
+            for bullet in bullets:
+                # Square bullet
+                shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.5), top + Inches(0.1), Inches(0.2), Inches(0.2))
+                shape.fill.solid()
+                shape.fill.fore_color.rgb = BRIGHT_BLUE
+                shape.line.color.rgb = BRIGHT_BLUE
+                # Text
+                txBox = slide.shapes.add_textbox(Inches(0.8), top, Inches(8), Inches(0.5))
+                tf = txBox.text_frame
+                p = tf.add_paragraph()
+                p.text = bullet.capitalize()
+                p.font.name = 'Century Gothic'
+                p.font.size = Pt(18)
+                p.font.color.rgb = BLACK
+                top += Inches(0.6)
+            add_logo_footer_number(slide, len(prs.slides))
+            return slide
+
+        # Helper for table slide
+        def add_table_slide(title, rows, cols, data, top_inch=1.5, height_inch=4):
+            slide = prs.slides.add_slide(prs.slide_layouts[6])  # Blank
+            set_background(slide)
+            # Title
+            txBox = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(8), Inches(0.5))
+            tf = txBox.text_frame
+            p = tf.add_paragraph()
+            p.text = title.title()
+            p.font.name = 'Century Gothic'
+            p.font.size = Pt(28)
+            p.font.bold = True
+            p.font.color.rgb = NAVY
+            # Table
+            left = Inches(0.5)
+            top = Inches(top_inch)
+            width = Inches(12)
+            height = Inches(height_inch)
+            table = slide.shapes.add_table(rows, cols, left, top, width, height).table
+            # Headers
+            for i, header in enumerate(data[0]):
+                cell = table.cell(0, i)
+                cell.text = header
+                fill = cell.fill
+                fill.solid()
+                fill.fore_color.rgb = NAVY
+                tf = cell.text_frame
+                p = tf.paragraphs[0]
+                p.font.name = 'Century Gothic'
+                p.font.color.rgb = WHITE
+                p.font.bold = True
+                p.font.size = Pt(14)
+                p.alignment = PP_ALIGN.LEFT
+            # Data
+            for row_idx, row in enumerate(data[1:], 1):
+                for col_idx, cell_text in enumerate(row):
+                    cell = table.cell(row_idx, col_idx)
+                    cell.text = str(cell_text)
+                    tf = cell.text_frame
+                    p = tf.paragraphs[0]
+                    p.font.name = 'Century Gothic'
+                    p.font.size = Pt(12)
+                    p.font.color.rgb = BLACK
+                    p.alignment = PP_ALIGN.LEFT
+                    # Alternating rows
+                    if row_idx % 2 == 0:
+                        fill = cell.fill
+                        fill.solid()
+                        fill.fore_color.rgb = LIGHT_GRAY
+            add_logo_footer_number(slide, len(prs.slides))
+            return slide
+
+        # Progress bar
+        progress = st.progress(0)
+        total_slides = 11
+        current_slide = 0
+        # Slide 1: Title
+        add_title_slide("Professional Services Transition Meeting", customer_name, today_date)
+        current_slide += 1
+        progress.progress(current_slide / total_slides)
+        # Slide 2: Agenda
+        agenda_bullets = ["Project Summary", "Technical Summary", "Recommended Next Steps"]
+        add_bullet_slide("Meeting Agenda", agenda_bullets)
+        current_slide += 1
+        progress.progress(current_slide / total_slides)
+        # Slide 3: Project Summary Title
+        add_title_slide("Project Summary")
+        current_slide += 1
+        progress.progress(current_slide / total_slides)
+        # Slide 4: Final Project Status Report
+        status_slide = prs.slides.add_slide(prs.slide_layouts[6])
+        set_background(status_slide)
+        # Title
+        txBox = status_slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(8), Inches(0.5))
+        tf = txBox.text_frame
+        p = tf.add_paragraph()
+        p.text = f"Final Project Status Report – {customer_name}".title()
+        p.font.name = 'Century Gothic'
+        p.font.size = Pt(28)
+        p.font.bold = True
+        p.font.color.rgb = NAVY
+        p.alignment = PP_ALIGN.LEFT
+        # Project Summary subtitle
+        txBox = status_slide.shapes.add_textbox(Inches(0.5), Inches(1), Inches(8), Inches(0.5))
+        tf = txBox.text_frame
+        p = tf.add_paragraph()
+        p.text = "Project Summary".title()
+        p.font.name = 'Century Gothic'
+        p.font.size = Pt(18)
+        p.font.bold = True
+        p.font.color.rgb = BLACK
+        p.alignment = PP_ALIGN.LEFT
+        # Project Summary text
+        txBox = status_slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(8), Inches(0.5))
+        tf = txBox.text_frame
+        p = tf.add_paragraph()
+        p.text = project_summary_text.capitalize()
+        p.font.name = 'Century Gothic'
+        p.font.size = Pt(14)
+        p.font.color.rgb = BLACK
+        p.alignment = PP_ALIGN.LEFT
+        # Dates table
+        table = status_slide.shapes.add_table(2, 3, Inches(0.5), Inches(2), Inches(12), Inches(0.5)).table
+        table.cell(0,0).text = "Today's Date"
+        table.cell(0,1).text = "Start Date"
+        table.cell(0,2).text = "End Date"
+        table.cell(1,0).text = today_date
+        table.cell(1,1).text = project_start
+        table.cell(1,2).text = project_end
+        for cell in table.iter_cells():
+            tf = cell.text_frame
+            p = tf.paragraphs[0]
+            p.font.name = 'Century Gothic'
+            p.font.size = Pt(12)
+            p.alignment = PP_ALIGN.LEFT
+            if cell in table.rows[0].cells:
+                cell.fill.solid()
+                cell.fill.fore_color.rgb = NAVY
+                p.font.color.rgb = WHITE
+                p.font.bold = True
+            else:
+                p.font.color.rgb = BLACK
+        # Milestones table
+        milestones_headers = ["Milestone", "Baseline Date", "Target Completion Date", "Status"]
+        milestones_rows = [[m["name"], m["baseline"], m["target"], m["status"]] for m in milestones_data]
+        table = status_slide.shapes.add_table(len(milestones_rows) + 1, 4, Inches(0.5), Inches(2.6), Inches(12), Inches(2)).table
+        for i, header in enumerate(milestones_headers):
+            cell = table.cell(0, i)
+            cell.text = header
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = NAVY
+            tf = cell.text_frame
+            p = tf.paragraphs[0]
+            p.font.name = 'Century Gothic'
+            p.font.color.rgb = WHITE
+            p.font.bold = True
+            p.font.size = Pt(12)
+            p.alignment = PP_ALIGN.LEFT
+        for row_idx, row in enumerate(milestones_rows, 1):
+            for col_idx, text in enumerate(row):
+                cell = table.cell(row_idx, col_idx)
+                cell.text = text
+                tf = cell.text_frame
+                p = tf.paragraphs[0]
+                p.font.name = 'Century Gothic'
+                p.font.size = Pt(12)
+                p.font.color.rgb = BLACK
+                p.alignment = PP_ALIGN.LEFT
+                if row_idx % 2 == 0:
+                    cell.fill.solid()
+                    cell.fill.fore_color.rgb = LIGHT_GRAY
+        # User Rollout table
+        rollout_headers = ["Milestone", "Target Users", "Current Users", "Target Completion", "Status"]
+        rollout_rows = [
+            ["Pilot", str(pilot_target), str(pilot_current), pilot_completion, pilot_status],
+            ["Production", str(prod_target), str(prod_current), prod_completion, prod_status]
+        ]
+        table = status_slide.shapes.add_table(3, 5, Inches(0.5), Inches(4.7), Inches(12), Inches(1)).table
+        for i, header in enumerate(rollout_headers):
+            cell = table.cell(0, i)
+            cell.text = header
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = NAVY
+            tf = cell.text_frame
+            p = tf.paragraphs[0]
+            p.font.name = 'Century Gothic'
+            p.font.color.rgb = WHITE
+            p.font.bold = True
+            p.font.size = Pt(12)
+            p.alignment = PP_ALIGN.LEFT
+        for row_idx, row in enumerate(rollout_rows, 1):
+            for col_idx, text in enumerate(row):
+                cell = table.cell(row_idx, col_idx)
+                cell.text = text
+                tf = cell.text_frame
+                p = tf.paragraphs[0]
+                p.font.name = 'Century Gothic'
+                p.font.size = Pt(12)
+                p.font.color.rgb = BLACK
+                p.alignment = PP_ALIGN.LEFT
+                if row_idx % 2 == 0:
+                    cell.fill.solid()
+                    cell.fill.fore_color.rgb = LIGHT_GRAY
+        # Objectives table
+        objectives_headers = ["Planned Project Objective (Target)", "Actual Project Result (Actual)", "Deviation/ Cause"]
+        objectives_rows = [[o["objective"], o["actual"], o["deviation"]] for o in objectives_data]
+        table = status_slide.shapes.add_table(len(objectives_rows) + 1, 3, Inches(0.5), Inches(5.8), Inches(12), Inches(1.5)).table
+        for i, header in enumerate(objectives_headers):
+            cell = table.cell(0, i)
+            cell.text = header
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = NAVY
+            tf = cell.text_frame
+            p = tf.paragraphs[0]
+            p.font.name = 'Century Gothic'
+            p.font.color.rgb = WHITE
+            p.font.bold = True
+            p.font.size = Pt(12)
+            p.alignment = PP_ALIGN.LEFT
+        for row_idx, row in enumerate(objectives_rows, 1):
+            for col_idx, text in enumerate(row):
+                cell = table.cell(row_idx, col_idx)
+                cell.text = text
+                tf = cell.text_frame
+                p = tf.paragraphs[0]
+                p.font.name = 'Century Gothic'
+                p.font.size = Pt(12)
+                p.font.color.rgb = BLACK
+                p.alignment = PP_ALIGN.LEFT
+                if row_idx % 2 == 0:
+                    cell.fill.solid()
+                    cell.fill.fore_color.rgb = LIGHT_GRAY
+        add_logo_footer_number(status_slide, len(prs.slides))
+        current_slide += 1
+        progress.progress(current_slide / total_slides)
+        # Slide 5: Deliverables
+        deliverables_headers = ["Deliverable", "Date delivered"]
+        deliverables_rows = [[d["name"], d["date"]] for d in deliverables_data]
+        deliverables_slide = add_table_slide("Deliverables", len(deliverables_rows) + 1, 2, [deliverables_headers] + deliverables_rows, top_inch=1, height_inch=2)
+        # Add checkmarks
+        for row_idx in range(1, len(deliverables_rows) + 1):
+            txBox = deliverables_slide.shapes.add_textbox(Inches(0.2), Inches(1) + Inches(0.3) * (row_idx-1), Inches(0.3), Inches(0.3))
+            tf = txBox.text_frame
+            p = tf.add_paragraph()
+            p.text = '✓'
+            p.font.name = 'Century Gothic'
+            p.font.size = Pt(14)
+            p.font.color.rgb = RGBColor(0, 176, 80)  # Green
+            p.alignment = PP_ALIGN.CENTER
+        # RAG Status Key
+        rag_box = deliverables_slide.shapes.add_textbox(Inches(0.5), Inches(3.5), Inches(9), Inches(1.5))
+        rag_tf = rag_box.text_frame
+        rag_tf.text = "Who: External & Internal Project Team \nWhat: Project Status Report\nWhen: Weekly\nWhy: Keeps project stakeholders informed on a weekly basis on critical aspects of the project such as scope, schedule, risks, issues, and next steps. \nMandatory: Yes (all projects)\n\nRAG Status Key:\nRed - Not On Track\nAmber - At Risk\nGreen - On Track\nBlue - Complete\nGray - Not Started"
+        for para in rag_tf.paragraphs:
+            para.font.name = 'Century Gothic'
+            para.font.size = Pt(14)
+            para.font.color.rgb = BLACK
+            para.alignment = PP_ALIGN.LEFT
+        add_logo_footer_number(deliverables_slide, len(prs.slides))
+        current_slide += 1
+        progress.progress(current_slide / total_slides)
+        # Slide 6: Technical Summary Title
+        technical_slide = add_title_slide("Technical Summary")
+        current_slide += 1
+        progress.progress(current_slide / total_slides)
+        # Slide 7: Deployed ZIA Architecture
+        zia_slide = prs.slides.add_slide(prs.slide_layouts[6]) # Blank
+        set_background(zia_slide)
+        # Title
+        txBox = zia_slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(9), Inches(0.5))
+        tf = txBox.text_frame
+        tf.text = "Deployed ZIA Architecture".title()
+        tf.paragraphs[0].font.name = 'Century Gothic'
+        tf.paragraphs[0].font.size = Pt(28)
+        tf.paragraphs[0].font.bold = True
+        tf.paragraphs[0].font.color.rgb = NAVY
+        # Diagram
+        # User authentication 
+        user_auth = zia_slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.5), Inches(1.5), Inches(2.5), Inches(1))
+        user_auth.fill.solid()
+        user_auth.fill.fore_color.rgb = LIGHT_GRAY
+        user_auth.line.color.rgb = NAVY
+        user_auth.text_frame.text = "User authentication \nand provisioning"
+        user_auth.text_frame.paragraphs[0].font.name = 'Century Gothic'
+        user_auth.text_frame.paragraphs[0].font.size = Pt(12)
+        user_auth.text_frame.paragraphs[0].font.color.rgb = BLACK
+        # Central Authority
+        central = zia_slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(3.5), Inches(1.5), Inches(2.5), Inches(1))
+        central.fill.solid()
+        central.fill.fore_color.rgb = BRIGHT_BLUE
+        central.line.color.rgb = NAVY
+        central.text_frame.text = "Central Authority"
+        central.text_frame.paragraphs[0].font.name = 'Century Gothic'
+        central.text_frame.paragraphs[0].font.size = Pt(12)
+        central.text_frame.paragraphs[0].font.color.rgb = WHITE
+        # Add more as needed...
+        # Key facts
+        key_box = zia_slide.shapes.add_textbox(Inches(0.5), Inches(3.5), Inches(12), Inches(3))
+        key_tf = key_box.text_frame
+        key_tf.text = f"Authentication Type\nIdentity Provider\t{idp}\nAuthentication Type\t{auth_type}\nUser and Group Provisioning\t{prov_type}\n\nClient Deployment\nTunnel Type\t{tunnel_type}\nZCC Deployment System\t{deploy_system}\nNumber of Windows and MacOS Devices\t{windows_num} Windows Devices\n\t{mac_num} MacOS Devices\nGeo Locations\t{geo_locations}\n\nPolicy Deployment\nSSL Inspection Policies\t{ssl_policies}\nURL Filtering Policies\t{url_policies}\nCloud App Control Policies\t{cloud_policies}\nFirewall Policies\t{fw_policies}"
+        for p in key_tf.paragraphs:
+            p.font.name = 'Century Gothic'
+            p.font.size = Pt(12)
+            p.font.color.rgb = BLACK
+            p.alignment = PP_ALIGN.LEFT
+        # Overview
+        overview_box = zia_slide.shapes.add_textbox(Inches(0.5), Inches(6.5), Inches(12), Inches(0.5))
+        overview_tf = overview_box.text_frame
+        overview_tf.text = "An overview of the deployed architecture and key facts - diagram stays generic (custom diagram will be in design document) Numbers on the diagram help to orient the conversation,"
+        overview_tf.paragraphs[0].font.name = 'Century Gothic'
+        overview_tf.paragraphs[0].font.size = Pt(12)
+        overview_tf.paragraphs[0].font.color.rgb = BLACK
+        add_logo_footer_number(zia_slide, len(prs.slides))
+        current_slide += 1
+        progress.progress(current_slide / total_slides)
+        # Slide 8: Open Items
+        open_items_headers = ["Task/ Description", "Date", "Owner", "Transition Plan/ Next Steps"]
+        open_items_rows = [[oi["task"], oi["date"], oi["owner"], oi["steps"]] for oi in open_items_data]
+        open_items_slide = add_table_slide("Open Items", len(open_items_rows) + 1, 4, [open_items_headers] + open_items_rows)
+        current_slide += 1
+        progress.progress(current_slide / total_slides)
+        # Slide 9: Recommended Next Steps
+        next_steps_slide = prs.slides.add_slide(prs.slide_layouts[6]) # Blank
+        set_background(next_steps_slide)
+        # Title
+        txBox = next_steps_slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(9), Inches(0.5))
+        tf = txBox.text_frame
+        tf.text = "Recommended Next Steps".title()
+        tf.paragraphs[0].font.name = 'Century Gothic'
+        tf.paragraphs[0].font.size = Pt(28)
+        tf.paragraphs[0].font.bold = True
+        tf.paragraphs[0].font.color.rgb = NAVY
+        # Short Term
+        short_title = next_steps_slide.shapes.add_textbox(Inches(0.5), Inches(1), Inches(6), Inches(0.5))
+        short_tf = short_title.text_frame
+        short_tf.text = "Short Term Activities"
+        short_tf.paragraphs[0].font.name = 'Century Gothic'
+        short_tf.paragraphs[0].font.size = Pt(18)
+        short_tf.paragraphs[0].font.bold = True
+        short_tf.paragraphs[0].font.color.rgb = NAVY
+        top = Inches(1.5)
+        for item in short_term:
+            # Square bullet
+            shape = next_steps_slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.5), top + Inches(0.1), Inches(0.2), Inches(0.2))
+            shape.fill.solid()
+            shape.fill.fore_color.rgb = ACCENT_GREEN
+            shape.line.color.rgb = ACCENT_GREEN
+            # Text
+            txBox = next_steps_slide.shapes.add_textbox(Inches(0.8), top, Inches(5), Inches(0.5))
+            tf = txBox.text_frame
+            p = tf.add_paragraph()
+            p.text = item + "."
+            p.font.name = 'Century Gothic'
+            p.font.size = Pt(14)
+            p.font.color.rgb = BLACK
+            p.alignment = PP_ALIGN.LEFT
+            top += Inches(0.4)
+        # Long Term
+        long_title = next_steps_slide.shapes.add_textbox(Inches(6.5), Inches(1), Inches(6), Inches(0.5))
+        long_tf = long_title.text_frame
+        long_tf.text = "Long Term Activities"
+        long_tf.paragraphs[0].font.name = 'Century Gothic'
+        long_tf.paragraphs[0].font.size = Pt(18)
+        long_tf.paragraphs[0].font.bold = True
+        long_tf.paragraphs[0].font.color.rgb = NAVY
+        top = Inches(1.5)
+        for item in long_term:
+            # Square bullet
+            shape = next_steps_slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(6.5), top + Inches(0.1), Inches(0.2), Inches(0.2))
+            shape.fill.solid()
+            shape.fill.fore_color.rgb = CYAN
+            shape.line.color.rgb = CYAN
+            # Text
+            txBox = next_steps_slide.shapes.add_textbox(Inches(6.8), top, Inches(5), Inches(0.5))
+            tf = txBox.text_frame
+            p = tf.add_paragraph()
+            p.text = item + "."
+            p.font.name = 'Century Gothic'
+            p.font.size = Pt(14)
+            p.font.color.rgb = BLACK
+            p.alignment = PP_ALIGN.LEFT
+            top += Inches(0.4)
+        # Note text
+        note_box = next_steps_slide.shapes.add_textbox(Inches(0.5), Inches(5.5), Inches(9), Inches(0.5))
+        note_tf = note_box.text_frame
+        note_tf.text = "Next Short- and Long-Term Activities\nIf additional resources and/or expertise are required to complete any of the recommendations above,customer should consider engaging Zscaler Professional Services to assist with this effort."
+        note_tf.paragraphs[0].font.name = 'Century Gothic'
+        note_tf.paragraphs[0].font.size = Pt(14)
+        note_tf.paragraphs[0].font.color.rgb = BLACK
+        note_tf.paragraphs[0].alignment = PP_ALIGN.LEFT
+        add_logo_footer_number(next_steps_slide, len(prs.slides))
+        current_slide += 1
+        progress.progress(current_slide / total_slides)
+        # Slide 10: Thank You with feedback
+        thank_slide = prs.slides.add_slide(prs.slide_layouts[6]) # Blank
+        set_background(thank_slide)
+        # Title
+        txBox = thank_slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(9), Inches(0.5))
+        tf = txBox.text_frame
+        tf.text = "Thank you".title()
+        tf.paragraphs[0].font.name = 'Century Gothic'
+        tf.paragraphs[0].font.size = Pt(36)
+        tf.paragraphs[0].font.bold = True
+        tf.paragraphs[0].font.color.rgb = NAVY
+        # Body
+        body_box = thank_slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(9), Inches(3))
+        body_tf = body_box.text_frame
+        body_tf.text = f"Your feedback on our project and Professional Services team is important to us. \nProject Manager: {pm_name}\nConsultant: {consultant_name}\n\nA short ~6 question survey on how your Professional Services team did will be automatically sent after the project has closed. The following people will receive the survey via email:\nPrimary Contact: {primary_contact}\nSecondary Contact: {secondary_contact}\nWe appreciate any insights you can provide to help us improve our processes and ensure we provide the best possible service in future projects."
+        for para in body_tf.paragraphs:
+            para.font.name = 'Century Gothic'
+            para.font.size = Pt(14)
+            para.font.color.rgb = BLACK
+            para.alignment = PP_ALIGN.LEFT
+        # Speech bubble
+        bubble = thank_slide.shapes.add_shape(MSO_SHAPE.CLOUD_CALLOUT, Inches(7), Inches(3), Inches(2), Inches(1))
+        bubble.fill.solid()
+        bubble.fill.fore_color.rgb = RGBColor(255, 192, 0) # Yellow
+        bubble_tf = bubble.text_frame
+        bubble_tf.text = "We want to know!"
+        bubble_tf.paragraphs[0].font.name = 'Century Gothic'
+        bubble_tf.paragraphs[0].font.size = Pt(18)
+        bubble_tf.paragraphs[0].font.color.rgb = BLACK
+        bubble_tf.paragraphs[0].alignment = PP_ALIGN.CENTER
+        add_logo_footer_number(thank_slide, len(prs.slides))
+        current_slide += 1
+        progress.progress(current_slide / total_slides)
+        # Slide 11: Final Thank You
+        final_thank_slide = add_title_slide("Thank you")
+        current_slide += 1
+        progress.progress(current_slide / total_slides)
+        # Save to buffer and provide download
+        bio = io.BytesIO()
+        prs.save(bio)
+        bio.seek(0)
+        st.download_button("Download Transition Deck", bio, file_name=f"{customer_name}_Zscaler_Transition.pptx", mime="application/vnd.openxmlformats-officedocument.presentationml.presentation")
