@@ -434,7 +434,7 @@ if st.button("Generate Transition Deck"):
         # Side text boxes for technical details
         tech_box = zia_slide.shapes.add_textbox(Inches(0.5), Inches(3), Inches(4), Inches(3))
         tech_tf = tech_box.text_frame
-        tech_tf.text = f"Identity Provider: {idp}\nAuthentication Type: {auth_type}\nUser/Group Provisioning: {prov_type}\nTunnel Type: {tunnel_type}\nZCC Deployment System: {deploy_system}\nWindows Devices: {windows_num}\nMacOS Devices: {mac_num}\nGeo Locations: {geo_locations}\nSSL Inspection Policies: {ssl_policies}\nURL Filtering Policies: {url_policies}\nCloud App Control Policies: {cloud_policies}\nFirewall Policies: {fw_policies}"
+        tech_tf.text = f"Identity Provider: {idp}\nAuthentication Type: {auth_type}\nUser/Group Provisioning: {prov_type}\nTunnel Type: {tunnel_type}\nZCC Deployment System: {deploy_system}\nNumber of Windows and MacOS Devices: {windows_num} Windows Devices\n98 MacOS Devices\nGeo Locations: {geo_locations}\nPolicy Deployment\nSSL Inspection Policies: {ssl_policies} Policies\nURL Filtering Policies: {url_policies} Policies\nCloud App Control Policies: {cloud_policies} Policies\nFirewall Policies: {fw_policies} Policies"
         for p in tech_tf.paragraphs:
             p.font.size = Pt(12)
             p.font.color.rgb = RGBColor(255, 255, 255)
