@@ -594,7 +594,6 @@ if st.button("Generate Transition Deck"):
         user_auth.fill.fore_color.rgb = LIGHT_GRAY
         user_auth.line.color.rgb = NAVY
         user_auth.text_frame.text = "User authentication \nand provisioning"
-        user_auth.text_frame.word_wrap = True
         user_auth.text_frame.paragraphs[0].font.name = 'Century Gothic'
         user_auth.text_frame.paragraphs[0].font.size = Pt(12)
         user_auth.text_frame.paragraphs[0].font.color.rgb = BLACK
@@ -604,7 +603,6 @@ if st.button("Generate Transition Deck"):
         central.fill.fore_color.rgb = BRIGHT_BLUE
         central.line.color.rgb = NAVY
         central.text_frame.text = "Central Authority"
-        central.text_frame.word_wrap = True
         central.text_frame.paragraphs[0].font.name = 'Century Gothic'
         central.text_frame.paragraphs[0].font.size = Pt(12)
         central.text_frame.paragraphs[0].font.color.rgb = WHITE
@@ -613,7 +611,6 @@ if st.button("Generate Transition Deck"):
         key_box = zia_slide.shapes.add_textbox(Inches(0.5), Inches(3.5), Inches(12), Inches(3))
         key_tf = key_box.text_frame
         key_tf.text = f"Authentication Type\nIdentity Provider\t{idp}\nAuthentication Type\t{auth_type}\nUser and Group Provisioning\t{prov_type}\n\nClient Deployment\nTunnel Type\t{tunnel_type}\nZCC Deployment System\t{deploy_system}\nNumber of Windows and MacOS Devices\t{windows_num} Windows Devices\n\t{mac_num} MacOS Devices\nGeo Locations\t{geo_locations}\n\nPolicy Deployment\nSSL Inspection Policies\t{ssl_policies}\nURL Filtering Policies\t{url_policies}\nCloud App Control Policies\t{cloud_policies}\nFirewall Policies\t{fw_policies}"
-        key_tf.word_wrap = True
         for p in key_tf.paragraphs:
             p.font.name = 'Century Gothic'
             p.font.size = Pt(12)
@@ -623,7 +620,6 @@ if st.button("Generate Transition Deck"):
         overview_box = zia_slide.shapes.add_textbox(Inches(0.5), Inches(6.5), Inches(12), Inches(0.5))
         overview_tf = overview_box.text_frame
         overview_tf.text = "An overview of the deployed architecture and key facts - diagram stays generic (custom diagram will be in design document) Numbers on the diagram help to orient the conversation,"
-        overview_tf.word_wrap = True
         overview_tf.paragraphs[0].font.name = 'Century Gothic'
         overview_tf.paragraphs[0].font.size = Pt(12)
         overview_tf.paragraphs[0].font.color.rgb = BLACK
@@ -700,7 +696,7 @@ if st.button("Generate Transition Deck"):
         # Note text
         note_box = next_steps_slide.shapes.add_textbox(Inches(0.5), Inches(5.5), Inches(9), Inches(0.5))
         note_tf = note_box.text_frame
-        note_tf.text = "Next Short- and Long-Term Activities\nIf additional resources and/or expertise are required to complete any of the recommendations above,customer should consider engaging Zscaler Professional Services to assist with this effort."
+        note_tf.text = "Next Short- and Long-Term Activities\nIf additional resources and/or expertise are required to complete any of the recommendations above, customer should consider engaging Zscaler Professional Services to assist with this effort."
         note_tf.paragraphs[0].font.name = 'Century Gothic'
         note_tf.paragraphs[0].font.size = Pt(14)
         note_tf.paragraphs[0].font.color.rgb = BLACK
