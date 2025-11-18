@@ -3,25 +3,13 @@
 Streamlit app: Fill your exact PPTX template (content.pptx) while preserving
 the template master (backgrounds, headers/footers, logos).
 
-What this version does:
-- Prefer a local template file ./content.pptx (place your committed template in the app folder)
-- If not present, attempt to download the exact file from the repo commit raw URL (private repo supported via GITHUB_TOKEN)
-- Fallback to Streamlit file_uploader if automatic retrieval fails
-- Scans the template for all placeholder tokens of the form {{TOKEN}} and shows them to you
-- Automatically replaces common placeholders with the UI values you enter
-- Heuristically fills tables that appear to be Milestones, Deliverables or Open Items by matching header text
-- Replaces a shape whose text is exactly {{LOGO}} with an uploaded logo while preserving the shape bounding box
-- Does not recreate slides or add branding programmatically — the template's masters, headers/footers and background remain intact
-
-How to use:
-1. Put the exact template PPTX in the same folder as this app and name it content.pptx (recommended).
-2. Alternatively, make sure the TEMPLATE_RAW_URL below points at the raw GitHub URL for your template commit (or set GITHUB_TOKEN env var for private repos).
-3. Add placeholders in your template (e.g. {{CUSTOMER_NAME}}, {{TODAY_DATE}}, {{M1_NAME}}, {{DELIVERABLE_1}} or put a shape with text {{LOGO}} where the logo should go).
-4. Run: streamlit run app.py ; fill the UI and press Generate Transition Deck.
-
-Notes:
-- python-pptx does not embed fonts; for exact font rendering ensure the target environment has the same fonts installed.
-- Table auto-fill overwrites existing table rows (it will not add new rows if the table in the template has fewer rows than the data).
+How it works:
+ - Prefer a local content.pptx file (place it next to this app) so masters/backgrounds/footers are preserved.
+ - If the local file is missing, attempt to download the exact template from the repo raw URL.
+ - Fallback to a user upload via Streamlit.
+ - Replace {{TOKEN}} placeholders anywhere in text shapes or table cells.
+ - Replace a shape whose text is exactly {{LOGO}} with an uploaded image, preserving the bounding box.
+ - Heuristically fill tables for milestones/deliverables/open items if the template includes such tables.
 """
 
 from __future__ import annotations
@@ -38,21 +26,18 @@ from pptx import Presentation
 from pptx.util import Pt
 
 # ------------------------
-# Config - adjust as needed
+# Configuration
 # ------------------------
-st.set_page_config(page_title="Zscaler Template Filler (Exact PPTX)", layout="wide")
+st.set_page_config(page_title="Zscaler Template Filler", layout="wide")
 
-# Local filename to prefer (recommended: commit content.pptx to repo and this app runs from repo root)
 LOCAL_TEMPLATE_PATH = "content.pptx"
-
-# Raw URL to the exact template commit (fallback). Update if you have a different commit/path.
 TEMPLATE_RAW_URL = (
     "https://raw.githubusercontent.com/jaijordan069/Zscaler-deck-generator/"
     "db10c36303a97f12497f797108dcc58b3cb4a327/content.pptx"
 )
 
-# Date pattern
 DATE_RE = re.compile(r"^\d{2}/\d{2}/\d{4}$")
+PLACEHOLDER_RE = re.compile(r"\{\{\s*([A-Z0-9_\-]+)\s*\}\}")
 
 # ------------------------
 # Utility helpers
@@ -74,11 +59,9 @@ def download_bytes_from_github(raw_url: str, timeout: int = 20) -> Optional[io.B
         return None
 
 
-# Placeholder extraction helpers
-PLACEHOLDER_RE = re.compile(r"\{\{\s*([A-Z0-9_\-]+)\s*\}\}")
-
 def find_placeholders_in_text(text: str) -> Set[str]:
     return {f"{{{{{m.group(1)}}}}}" for m in PLACEHOLDER_RE.finditer(text or "")}
+
 
 def scan_presentation_for_placeholders(prs: Presentation) -> Set[str]:
     found: Set[str] = set()
@@ -86,8 +69,7 @@ def scan_presentation_for_placeholders(prs: Presentation) -> Set[str]:
         for shape in list(slide.shapes):
             try:
                 if hasattr(shape, "text_frame") and shape.text_frame is not None:
-                    txt = shape.text_frame.text or ""
-                    found.update(find_placeholders_in_text(txt))
+                    found.update(find_placeholders_in_text(shape.text_frame.text or ""))
             except Exception:
                 pass
             try:
@@ -96,8 +78,7 @@ def scan_presentation_for_placeholders(prs: Presentation) -> Set[str]:
                     for row in tbl.rows:
                         for cell in row.cells:
                             try:
-                                ct = cell.text or ""
-                                found.update(find_placeholders_in_text(ct))
+                                found.update(find_placeholders_in_text(cell.text or ""))
                             except Exception:
                                 pass
             except Exception:
@@ -116,6 +97,7 @@ def replace_text_in_shape(shape, mapping: Dict[str, str]):
             new_text = new_text.replace(k, v)
     if new_text != full_text:
         try:
+            # attempt to preserve first-run font basics
             first_para = tf.paragraphs[0]
             font_props = {}
             if first_para.runs:
@@ -153,6 +135,7 @@ def replace_text_in_shape(shape, mapping: Dict[str, str]):
             except Exception:
                 pass
     else:
+        # per-run replace (preserve run formatting)
         for para in tf.paragraphs:
             for run in list(para.runs):
                 rt = run.text
@@ -171,40 +154,43 @@ def replace_texts_in_table(table, mapping: Dict[str, str]):
     for row in table.rows:
         for cell in row.cells:
             try:
-                text_before = cell.text or ""
+                before = cell.text or ""
             except Exception:
                 continue
-            new_text = text_before
+            after = before
             for k, v in mapping.items():
-                if k in new_text:
-                    new_text = new_text.replace(k, v)
-            if new_text != text_before:
+                if k in after:
+                    after = after.replace(k, v)
+            if after != before:
                 try:
-                    cell.text = new_text
+                    cell.text = after
                 except Exception:
                     try:
                         cell.text_frame.clear()
-                        cell.text_frame.paragraphs[0].text = new_text
+                        cell.text_frame.paragraphs[0].text = after
                     except Exception:
                         pass
 
 
 def replace_placeholders_in_presentation(prs: Presentation, mapping: Dict[str, str], logo_bytes: Optional[io.BytesIO] = None):
-    shapes_removed = []
+    shapes_to_remove = []
     for slide in prs.slides:
         for shape in list(slide.shapes):
+            # tables
             try:
                 if getattr(shape, "has_table", False):
                     replace_texts_in_table(shape.table, mapping)
                     continue
             except Exception:
                 pass
+
+            # logo placeholder (exact match)
             try:
                 if hasattr(shape, "text_frame") and shape.text_frame is not None:
-                    txt = shape.text_frame.text.strip()
+                    txt = (shape.text_frame.text or "").strip()
                     if txt == "{{LOGO}}" and logo_bytes:
                         left, top, width, height = shape.left, shape.top, shape.width, shape.height
-                        shapes_removed.append((slide, shape))
+                        shapes_to_remove.append((slide, shape))
                         try:
                             logo_bytes.seek(0)
                             slide.shapes.add_picture(logo_bytes, left, top, width=width, height=height)
@@ -221,27 +207,30 @@ def replace_placeholders_in_presentation(prs: Presentation, mapping: Dict[str, s
                         continue
             except Exception:
                 pass
+
+            # generic text shapes
             try:
                 if hasattr(shape, "text_frame") and shape.text_frame is not None:
                     replace_text_in_shape(shape, mapping)
             except Exception:
                 pass
-    for slide, shape in shapes_removed:
+
+    for slide, shape in shapes_to_remove:
         try:
             el = shape._element
             el.getparent().remove(el)
         except Exception:
             pass
+
     return prs
 
 
 def table_header_texts(table) -> List[str]:
-    headers = []
+    headers: List[str] = []
     try:
         if not table.rows:
             return headers
-        top_row = table.rows[0]
-        for cell in top_row.cells:
+        for cell in table.rows[0].cells:
             try:
                 headers.append((cell.text or "").strip().lower())
             except Exception:
@@ -273,15 +262,18 @@ def heuristically_fill_known_tables(prs: Presentation, milestones_rows: List[Lis
                     tbl = shape.table
                     headers = table_header_texts(tbl)
                     header_concat = " ".join(headers)
+                    # milestones heuristics
                     if any("milestone" in h for h in headers) or ("baseline" in header_concat and "target" in header_concat):
                         if milestones_rows:
                             fill_table_rows_with_data(tbl, milestones_rows)
                             continue
+                    # deliverables heuristics
                     if any("deliver" in h for h in headers) or ("date" in header_concat and "deliver" in header_concat):
                         if deliverables_rows:
                             fill_table_rows_with_data(tbl, deliverables_rows)
                             continue
-                    if any("open" in h for h in headers) or any("task" in h or "owner" in h or "transition" in h for h in headers):
+                    # open items heuristics
+                    if any("open" in h for h in headers) or any(("task" in h or "owner" in h or "transition" in h) for h in headers):
                         if open_rows:
                             fill_table_rows_with_data(tbl, open_rows)
                             continue
@@ -289,23 +281,32 @@ def heuristically_fill_known_tables(prs: Presentation, milestones_rows: List[Lis
                 pass
 
 
-st.title("Zscaler Transition Deck — Exact Template Filler")
-st.markdown("This app edits your exact template (content.pptx). It will preserve backgrounds, headers, footers and masters.")
+# ------------------------
+# Streamlit UI
+# ------------------------
+st.title("Zscaler Transition Deck — Template Filler")
+st.markdown("This app edits your exact PPTX template (content.pptx) and preserves masters/backgrounds/footers.")
 
 with st.sidebar:
-    st.header("Template loading options")
-    st.markdown("- Place content.pptx in the app folder (preferred) or upload it below.\n- If the template lives in a private GitHub repo, set GITHUB_TOKEN in the environment where the app runs.\n- Put placeholders in the template (like {{CUSTOMER_NAME}}). Use a textbox with text {{LOGO}} to mark where a logo should go.") 
+    st.header("Instructions")
+    st.markdown(
+        "- Put placeholders in your template like {{CUSTOMER_NAME}} and {{PROJECT_SUMMARY}}.\n"
+        "- Place a small textbox whose content is exactly {{LOGO}} where the logo should go; upload a logo here to replace it.\n"
+        "- Place content.pptx alongside this app or upload it. If the repo is private, set GITHUB_TOKEN in the environment."
+    )
 
+# Basic fields
 st.header("Customer & Project Basics")
 c1, c2, c3 = st.columns(3)
 customer_name = c1.text_input("Customer Name *", value="Pixartprinting")
 today_date = c2.text_input("Today's Date (DD/MM/YYYY) *", value=datetime.utcnow().strftime("%d/%m/%Y"))
 project_start = c3.text_input("Project Start Date (DD/MM/YYYY) *", value="01/06/2025")
 project_end = st.text_input("Project End Date (DD/MM/YYYY) *", value="14/11/2025")
-project_summary_text = st.text_area("Project Summary Text", value="More than half of the users have been deployed and there were no critical issues. Remaining enrollments expected without major issues.")
+project_summary_text = st.text_area("Project Summary Text", value="More than half of the users have been deployed and there were no critical issues.")
 theme = st.selectbox("Theme", ["White", "Navy"], index=0)
 
-st.header("Milestones (7 rows - as template)")
+# Milestones (7)
+st.header("Milestones (7 rows)")
 milestone_defaults = [
     ("Initial Project Schedule Accepted", "27/06/2025", "27/06/2025", ""),
     ("Initial Design Accepted", "14/07/2025", "17/07/2025", ""),
@@ -313,4 +314,175 @@ milestone_defaults = [
     ("Pilot Rollout Complete", "08/08/2025", "22/08/2025", ""),
     ("Production Configuration Complete", "29/08/2025", "29/08/2025", ""),
     ("Production Rollout Complete", "14/11/2025", "??", ""),
-    ("Final Design
+    ("Final Design Accepted", "14/11/2025", "14/11/2025", ""),
+]
+milestones_data = []
+for i in range(7):
+    with st.expander(f"Milestone {i+1}", expanded=False):
+        mn = st.text_input(f"Milestone {i+1} Name", value=milestone_defaults[i][0], key=f"mname_{i}")
+        mb = st.text_input(f"Baseline {i+1} (DD/MM/YYYY)", value=milestone_defaults[i][1], key=f"mbaseline_{i}")
+        mt = st.text_input(f"Target {i+1} (DD/MM/YYYY)", value=milestone_defaults[i][2], key=f"mtarget_{i}")
+        ms = st.text_input(f"Status {i+1}", value=milestone_defaults[i][3], key=f"mstatus_{i}")
+        milestones_data.append({"name": mn, "baseline": mb, "target": mt, "status": ms})
+
+# Deliverables (5)
+st.header("Deliverables (5 rows)")
+deliverables_data = []
+for i in range(5):
+    with st.expander(f"Deliverable {i+1}", expanded=False):
+        dn = st.text_input(f"Deliverable Name {i+1}", value="", key=f"dname_{i}")
+        dd = st.text_input(f"Date Delivered {i+1}", value="", key=f"ddate_{i}")
+        deliverables_data.append({"name": dn, "date": dd})
+
+# Open items (6)
+st.header("Open Items (6 rows)")
+open_items_data = []
+for i in range(6):
+    with st.expander(f"Open Item {i+1}", expanded=False):
+        otask = st.text_input(f"Task/Description {i+1}", value="", key=f"otask_{i}")
+        odate = st.text_input(f"Date {i+1}", value="", key=f"odate_{i}")
+        oowner = st.text_input(f"Owner {i+1}", value="", key=f"oowner_{i}")
+        osteps = st.text_area(f"Transition Plan/Next Steps {i+1}", value="", key=f"osteps_{i}", height=80)
+        open_items_data.append({"task": otask, "date": odate, "owner": oowner, "steps": osteps})
+
+# Contacts
+st.header("Contacts")
+c1, c2 = st.columns(2)
+pm_name = c1.text_input("Project Manager Name", value="Alex Vazquez")
+consultant_name = c2.text_input("Consultant Name", value="Alex Vazquez")
+primary_contact = st.text_input("Primary Contact", value="Teia proctor")
+secondary_contact = st.text_input("Secondary Contact", value="Marco Sattier")
+
+# Uploaders
+st.markdown("Optional: upload logo to replace {{LOGO}} in the template.")
+logo_upload = st.file_uploader("Upload logo (png/jpg)", type=["png", "jpg", "jpeg"])
+st.markdown("Optional: upload template PPTX if content.pptx is not present.")
+uploaded_template = st.file_uploader("Upload template PPTX", type=["pptx"])
+
+# Preview placeholders
+if st.button("Preview placeholders in template"):
+    tpl_bytes = None
+    if os.path.exists(LOCAL_TEMPLATE_PATH):
+        try:
+            with open(LOCAL_TEMPLATE_PATH, "rb") as f:
+                tpl_bytes = io.BytesIO(f.read())
+            st.success("Loaded local template.")
+        except Exception as e:
+            st.warning(f"Failed to read local template: {e}")
+    if tpl_bytes is None:
+        tpl_bytes = download_bytes_from_github(TEMPLATE_RAW_URL)
+        if tpl_bytes:
+            st.success("Downloaded template from GitHub raw URL.")
+    if tpl_bytes is None and uploaded_template:
+        tpl_bytes = io.BytesIO(uploaded_template.read())
+        st.success("Loaded uploaded template.")
+    if tpl_bytes is None:
+        st.warning("Template not found. Place content.pptx in app folder or upload it.")
+    else:
+        try:
+            prs = Presentation(tpl_bytes)
+            placeholders = sorted(scan_presentation_for_placeholders(prs))
+            st.write("Placeholders found:")
+            st.json(placeholders)
+        except Exception as e:
+            st.error(f"Failed to open PPTX: {e}")
+
+# Generate deck
+if st.button("Generate Transition Deck"):
+    # basic validation
+    if not customer_name:
+        st.error("Customer Name is required.")
+        st.stop()
+    for d in (today_date, project_start, project_end):
+        if d and not is_valid_date(d):
+            st.error(f"Date '{d}' must be DD/MM/YYYY format.")
+            st.stop()
+
+    # load template (local -> github raw -> upload)
+    tpl_bytes = None
+    if os.path.exists(LOCAL_TEMPLATE_PATH):
+        try:
+            with open(LOCAL_TEMPLATE_PATH, "rb") as f:
+                tpl_bytes = io.BytesIO(f.read())
+            st.info("Loaded local template.")
+        except Exception:
+            tpl_bytes = None
+
+    if tpl_bytes is None:
+        tpl_bytes = download_bytes_from_github(TEMPLATE_RAW_URL)
+        if tpl_bytes:
+            st.info("Downloaded template from GitHub raw URL.")
+
+    if tpl_bytes is None:
+        if uploaded_template is None:
+            st.error("Template not available. Upload or place content.pptx in app folder.")
+            st.stop()
+        tpl_bytes = io.BytesIO(uploaded_template.read())
+        st.info("Loaded uploaded template.")
+
+    try:
+        prs = Presentation(tpl_bytes)
+    except Exception as e:
+        st.error(f"Failed to load template: {e}")
+        st.stop()
+
+    # mapping placeholders
+    mapping: Dict[str, str] = {
+        "{{CUSTOMER_NAME}}": customer_name,
+        "{{TODAY_DATE}}": today_date,
+        "{{PROJECT_START}}": project_start,
+        "{{PROJECT_END}}": project_end,
+        "{{PROJECT_SUMMARY}}": project_summary_text,
+        "{{PM_NAME}}": pm_name,
+        "{{CONSULTANT_NAME}}": consultant_name,
+        "{{PRIMARY_CONTACT}}": primary_contact,
+        "{{SECONDARY_CONTACT}}": secondary_contact,
+    }
+
+    # present extra placeholders for manual mapping
+    placeholders_found = scan_presentation_for_placeholders(prs)
+    extra = sorted([p for p in placeholders_found if p not in mapping])
+    if extra:
+        st.markdown("Provide values for additional placeholders detected in the template:")
+        for token in extra:
+            val = st.text_input(f"Value for {token}", key=f"ph_{token}")
+            if val:
+                mapping[token] = val
+
+    # prepare table data rows
+    milestones_rows = [[m["name"], m["baseline"], m["target"], m["status"]] for m in milestones_data]
+    deliverables_rows = [[d["name"], d["date"]] for d in deliverables_data]
+    open_rows = [[o["task"], o["date"], o["owner"], o["steps"]] for o in open_items_data]
+
+    # attempt heuristic table fill
+    try:
+        heuristically_fill_known_tables(prs, milestones_rows, deliverables_rows, open_rows)
+    except Exception:
+        pass
+
+    # prepare logo bytes
+    logo_bytes = None
+    if logo_upload:
+        try:
+            logo_bytes = io.BytesIO(logo_upload.read())
+        except Exception:
+            logo_bytes = None
+
+    # replace placeholders
+    try:
+        prs_filled = replace_placeholders_in_presentation(prs, mapping, logo_bytes=logo_bytes)
+    except Exception as e:
+        st.error(f"Failed to replace placeholders: {e}")
+        st.stop()
+
+    # save and provide download
+    out = io.BytesIO()
+    try:
+        prs_filled.save(out)
+        out.seek(0)
+    except Exception as e:
+        st.error(f"Failed to save PPTX: {e}")
+        st.stop()
+
+    st.success("Generated PPTX from template.")
+    st.download_button("Download Transition Deck", data=out, file_name=f"{customer_name}_Transition_Filled.pptx", mime="application/vnd.openxmlformats-officedocument.presentationml.presentation")
