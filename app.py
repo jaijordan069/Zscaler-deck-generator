@@ -65,7 +65,7 @@ FOOTER_HEIGHT = Inches(0.35)
 # Assets (added alt logos, bg if needed)
 LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Zscaler_logo.svg/512px-Zscaler_logo.svg.png"
 ALT_LOGO_URL = "https://companieslogo.com/img/orig/ZS-46a5871c.png?t=1720244494"
-BG_URL = None  # Add if you have template bg image URL
+BG_URL = "https://png.pngtree.com/background/20210716/original/pngtree-blue-halftone-background-picture-image_1354875.jpg"  # Blue halftone gradient
 
 # Date regex
 DATE_RE = re.compile(r'^\d{2}/\d{2}/\d{4}$')
@@ -135,13 +135,16 @@ def apply_template_branding(prs: Presentation, slide, slide_num: int, logo_bytes
     slide_height = prs.slide_height
     logo_w = Inches(1.5)  # Tweaked for template
     logo_h = Inches(0.4)
-    logo_left = slide_width - logo_w - MARGIN_RIGHT
+    logo_left = MARGIN_LEFT
     logo_top = MARGIN_TOP / 2
     if logo_bytes:
         try:
             slide.shapes.add_picture(logo_bytes, logo_left, logo_top, logo_w, logo_h)
         except Exception:
             pass
+    # Add "PROSERVE" text next to logo
+    proserve_left = logo_left + logo_w + Inches(0.1)
+    add_textbox(slide, proserve_left, logo_top, Inches(2.5), logo_h, "PROSERVE", size=Pt(24), bold=True, color=COLOR_WHITE)
     # Footer (exact text from template)
     footer_left = MARGIN_LEFT
     footer_top = slide_height - FOOTER_HEIGHT
@@ -349,14 +352,16 @@ if st.button("Generate & Download PPTX"):
         logo_bytes = download_image_to_bytes(LOGO_URL) or download_image_to_bytes(ALT_LOGO_URL)
         bg_bytes = download_image_to_bytes(BG_URL)
 
-        # Helper: Title Slide (tweaked positions)
+        # Helper: Title Slide (tweaked positions, white text)
         def create_title_slide(title_text: str, subtitle_text: str = "", date_text: str = "", slide_num: int = 1):
             slide = add_slide_with_background(prs, bg_bytes)
-            add_textbox(slide, MARGIN_LEFT, Inches(1.0), Inches(8.0), Inches(1.0), title_text, SIZE_TITLE, True, COLOR_NAVY)
+            add_textbox(slide, MARGIN_LEFT, Inches(1.0), Inches(8.0), Inches(1.0), title_text, SIZE_TITLE, True, COLOR_WHITE)
             if subtitle_text:
-                add_textbox(slide, MARGIN_LEFT, Inches(2.1), Inches(8.0), Inches(0.5), subtitle_text, SIZE_SUBTITLE, color=COLOR_NAVY)
+                add_textbox(slide, MARGIN_LEFT, Inches(2.1), Inches(8.0), Inches(0.5), subtitle_text.upper(), SIZE_SUBTITLE, color=COLOR_WHITE)
+                # Add red lowercase customer below
+                add_textbox(slide, MARGIN_LEFT, Inches(2.6), Inches(8.0), Inches(0.5), subtitle_text.lower(), SIZE_SUBTITLE, color=COLOR_THREAT_RED)
             if date_text:
-                add_textbox(slide, MARGIN_LEFT, Inches(2.6), Inches(8.0), Inches(0.5), date_text, SIZE_BODY)
+                add_textbox(slide, MARGIN_LEFT, Inches(3.1), Inches(8.0), Inches(0.5), date_text, SIZE_BODY, color=COLOR_WHITE)
             apply_template_branding(prs, slide, slide_num, logo_bytes)
             # Add images if uploaded (placeholder positions)
             for img_name, img_bytes in uploaded_images.items():
