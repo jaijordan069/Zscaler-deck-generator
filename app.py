@@ -66,7 +66,7 @@ FOOTER_HEIGHT = Inches(0.35)
 
 # Assets (added alt logos, bg if needed)
 LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Zscaler_logo.svg/512px-Zscaler_logo.svg.png"
-ALT_LOGO_URL = "https://companieslogo.com/img/orig/ZS-46a5871c.png?t=1720244494"
+FALLBACK_LOGO_URL = "https://companieslogo.com/img/orig/ZS-46a5871c.png?t=1720244494"  # Fallback PNG
 BG_URL = None  # Generated in code
 
 # Date regex
@@ -381,13 +381,13 @@ if st.button("Generate & Download PPTX"):
         prs = Presentation()
         slide_width = prs.slide_width
         slide_height = prs.slide_height
-        logo_bytes = download_image_to_bytes(LOGO_URL) or download_image_to_bytes(ALT_LOGO_URL)
+        logo_bytes = download_image_to_bytes(LOGO_URL) or download_image_to_bytes(FALLBACK_LOGO_URL)
         bg_bytes = generate_background()
 
         # Helper: Title Slide (tweaked positions, white text)
         def create_title_slide(title_text: str, subtitle_text: str = "", date_text: str = "", slide_num: int = 1):
             slide = add_slide_with_background(prs, bg_bytes)
-            add_textbox(slide, MARGIN_LEFT, Inches(1.0), Inches(8.0), Inches(1.0), title_text, SIZE_TITLE, True, COLOR_WHITE)
+            add_textbox(slide, MARGIN_LEFT, Inches(1.0), Inches(1.0), Inches(1.0), title_text, SIZE_TITLE, True, COLOR_WHITE)
             if subtitle_text:
                 add_textbox(slide, MARGIN_LEFT, Inches(2.1), Inches(8.0), Inches(0.5), subtitle_text.upper(), SIZE_SUBTITLE, color=COLOR_WHITE)
                 # Add red lowercase customer below
