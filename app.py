@@ -17,6 +17,8 @@ from pptx.enum.text import PP_ALIGN, MSO_AUTO_SIZE
 from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR
 from pptx.oxml.ns import qn
 from pptx.util import Length  # For type checking
+import numpy as np
+import matplotlib.pyplot as plt
 
 # -------------------------
 # Configuration / Constants (Updated for exact template match)
@@ -65,7 +67,7 @@ FOOTER_HEIGHT = Inches(0.35)
 # Assets (added alt logos, bg if needed)
 LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Zscaler_logo.svg/512px-Zscaler_logo.svg.png"
 ALT_LOGO_URL = "https://companieslogo.com/img/orig/ZS-46a5871c.png?t=1720244494"
-BG_URL = "https://png.pngtree.com/background/20210716/original/pngtree-blue-halftone-background-picture-image_1354875.jpg"  # Blue halftone gradient
+BG_URL = None  # Generated in code
 
 # Date regex
 DATE_RE = re.compile(r'^\d{2}/\d{2}/\d{4}$')
@@ -159,6 +161,36 @@ def add_slide_with_background(prs: Presentation, bg_bytes: Optional[io.BytesIO])
     if bg_bytes:
         slide.shapes.add_picture(bg_bytes, 0, 0, prs.slide_width, prs.slide_height)
     return slide
+
+def generate_background():
+    height = 720
+    width = 1280
+    y, x = np.ogrid[0:height, 0:width]
+    gradient = np.linspace(0, 1, width) * 255  # Gradient from left blue to right white
+    gradient = np.tile(gradient, (height, 1))
+    blue_channel = 255 - gradient  # Dark blue to light
+    green_channel = blue_channel // 2
+    red_channel = np.zeros_like(blue_channel)
+
+    # Add halftone dots
+    dot_size = 5
+    dots = ((x // dot_size) % 2 == 0) ^ ((y // dot_size) % 2 == 0)
+    dots = dots.astype(float) * 50  # Dot intensity
+
+    blue_channel = np.clip(blue_channel - dots, 0, 255)
+    green_channel = np.clip(green_channel - dots, 0, 255)
+
+    img = np.stack([red_channel, green_channel, blue_channel], axis=-1).astype(np.uint8)
+
+    # Save to BytesIO
+    fig, ax = plt.subplots(figsize=(width/100, height/100))
+    ax.imshow(img)
+    ax.axis('off')
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
 
 # -------------------------
 # Streamlit UI (Made attractive: Columns, expanders, previews, images in expander)
@@ -350,7 +382,7 @@ if st.button("Generate & Download PPTX"):
         slide_width = prs.slide_width
         slide_height = prs.slide_height
         logo_bytes = download_image_to_bytes(LOGO_URL) or download_image_to_bytes(ALT_LOGO_URL)
-        bg_bytes = download_image_to_bytes(BG_URL)
+        bg_bytes = generate_background()
 
         # Helper: Title Slide (tweaked positions, white text)
         def create_title_slide(title_text: str, subtitle_text: str = "", date_text: str = "", slide_num: int = 1):
@@ -359,9 +391,9 @@ if st.button("Generate & Download PPTX"):
             if subtitle_text:
                 add_textbox(slide, MARGIN_LEFT, Inches(2.1), Inches(8.0), Inches(0.5), subtitle_text.upper(), SIZE_SUBTITLE, color=COLOR_WHITE)
                 # Add red lowercase customer below
-                add_textbox(slide, MARGIN_LEFT, Inches(2.6), Inches(8.0), Inches(0.5), subtitle_text.lower(), SIZE_SUBTITLE, color=COLOR_THREAT_RED)
+                add_textbox(slide, MARGIN_LEFT, Inches(3.1), Inches(8.0), Inches(0.5), subtitle_text.lower(), SIZE_SUBTITLE, color=COLOR_THREAT_RED)
             if date_text:
-                add_textbox(slide, MARGIN_LEFT, Inches(3.1), Inches(8.0), Inches(0.5), date_text, SIZE_BODY, color=COLOR_WHITE)
+                add_textbox(slide, MARGIN_LEFT, Inches(2.6), Inches(8.0), Inches(0.5), date_text, SIZE_BODY, color=COLOR_WHITE)
             apply_template_branding(prs, slide, slide_num, logo_bytes)
             # Add images if uploaded (placeholder positions)
             for img_name, img_bytes in uploaded_images.items():
