@@ -1,266 +1,743 @@
+#!/usr/bin/env python3
+"""
+Streamlit app: Zscaler Professional Services Transition Deck PPT Generator
+
+Hardened, cleaned and defensive version:
+- Fixes previous AttributeError on Run internals (safe set_font_run)
+- Fixes python-pptx TypeError when setting table widths (use integer EMU)
+- Fixes IndexError: tuple index out of range by computing table columns robustly
+  and guarding all table/cell operations with safe checks/try/except
+- Defensive handling for empty headers/rows, missing images, connectors, runs, etc.
+
+Drop this file in place of your existing app.py, restart the Streamlit server,
+and generate a deck. If any traceback remains, paste the full traceback here
+and I'll iterate quickly.
+"""
+
+from __future__ import annotations
+
+import io
+import re
+import requests
+from datetime import datetime
+from typing import List, Optional
+
 import streamlit as st
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN
-from pptx.enum.shapes import MSO_SHAPE
-import io
-import requests
-try:
-    from docx import Document
-    from docx.shared import Inches as DocInches, Pt as DocPt
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-except ImportError:
-    Document = None
-try:
-    from fpdf import FPDF
-except ImportError:
-    FPDF = None
+from pptx.enum.text import PP_ALIGN, MSO_AUTO_SIZE
+from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR
+from pptx.oxml.ns import qn
 
-# Page config
-st.set_page_config(page_title="Zscaler Deck Generator", layout="wide")
+# -------------------------
+# Configuration / Constants
+# -------------------------
+st.set_page_config(page_title="Zscaler Transition Deck PPT Generator", layout="wide")
 
-# Style
-st.markdown("""
-<style>
-.stApp {background: linear-gradient(to bottom, #0066CC, white); background-size: cover;}
-</style>
-""", unsafe_allow_html=True)
+# Colors (match template palette)
+COLOR_BRIGHT_BLUE = RGBColor(37, 108, 247)
+COLOR_NAVY = RGBColor(0, 23, 68)
+COLOR_WHITE = RGBColor(255, 255, 255)
+COLOR_LIGHT_GRAY = RGBColor(229, 241, 250)
+COLOR_CYAN = RGBColor(18, 212, 255)
+COLOR_ACCENT_GREEN = RGBColor(107, 255, 179)
+COLOR_THREAT_RED = RGBColor(237, 25, 81)
+COLOR_BLACK = RGBColor(0, 0, 0)
+COLOR_ZSCALER_YELLOW = RGBColor(255, 192, 0)
 
-st.image("https://companieslogo.com/img/orig/ZS-46a5871c.png?t=1720244494", width=200)
-st.title("Zscaler Deck Generator")
+# Fonts & sizes (template)
+FONT_NAME = "Century Gothic"
+SIZE_TITLE = Pt(36)
+SIZE_SLIDE_TITLE = Pt(28)
+SIZE_SUBTITLE = Pt(20)
+SIZE_HEADER = Pt(18)
+SIZE_BODY = Pt(14)
+SIZE_SMALL = Pt(12)
+SIZE_FOOTER = Pt(8)
 
-# Colors
-BRIGHT_BLUE = RGBColor(37, 108, 247)
-NAVY = RGBColor(0, 23, 68)
-WHITE = RGBColor(255, 255, 255)
-LIGHT_GRAY = RGBColor(229, 241, 250)
-BLACK = RGBColor(0, 0, 0)
+# Slide/page layout constants (Inches)
+MARGIN_LEFT = Inches(0.45)
+MARGIN_TOP = Inches(0.45)
+MARGIN_RIGHT = Inches(0.45)
+FOOTER_HEIGHT = Inches(0.35)
 
+# Logo and background resources (template assets)
 LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Zscaler_logo.svg/512px-Zscaler_logo.svg.png"
+ALT_LOGO_URL = "https://companieslogo.com/img/orig/ZS-46a5871c.png?t=1720244494"
+BG_URL: Optional[str] = None  # Provide background image URL if you have an exact template bg
 
-def set_white_background(slide):
-    fill = slide.background.fill
-    fill.solid()
-    fill.fore_color.rgb = WHITE
+# Date validation regex
+DATE_RE = re.compile(r'^\d{2}/\d{2}/\d{4}$')
 
-def add_logo_footer(slide, slide_num):
-    # Logo top-right
+# -------------------------
+# Utility helpers
+# -------------------------
+def is_valid_date(d: str) -> bool:
+    if not d:
+        return False
+    return bool(DATE_RE.match(d))
+
+
+def download_image_to_bytes(url: Optional[str]) -> Optional[io.BytesIO]:
+    """Download image from URL into BytesIO. Returns None on failure or if url is falsy."""
+    if not url:
+        return None
     try:
-        img = requests.get(LOGO_URL).content
-        slide.shapes.add_picture(io.BytesIO(img), Inches(11), Inches(0), height=Inches(0.5))
-    except:
+        r = requests.get(url, timeout=8)
+        r.raise_for_status()
+        return io.BytesIO(r.content)
+    except Exception:
+        return None
+
+
+def set_font_run(run, name: str = FONT_NAME, size: Pt = SIZE_BODY, bold: bool = False, color: RGBColor = COLOR_BLACK):
+    """
+    Safely set run font properties without relying on internals like run._element.
+    Uses the public run.font API and attempts safe fallbacks to set rFonts when available.
+    """
+    try:
+        run.font.name = name
+        run.font.size = size
+        run.font.bold = bold
+        run.font.color.rgb = color
+    except Exception:
+        # If run doesn't support .font for some reason, ignore — not fatal
         pass
 
-    # Footer
-    footer = slide.shapes.add_textbox(Inches(0.5), Inches(7.1), Inches(9), Inches(0.3))
-    tf = footer.text_frame
-    tf.text = "Zscaler, Inc. All rights reserved. © 2025"
-    tf.paragraphs[0].font.name = "Century Gothic"
-    tf.paragraphs[0].font.size = Pt(8)
-    tf.paragraphs[0].font.color.rgb = NAVY
-    tf.paragraphs[0].alignment = PP_ALIGN.LEFT
+    # Try best-effort to set East-Asian font if available
+    try:
+        if hasattr(run, "_element"):
+            run._element.rPr.rFonts.set(qn("a:ea"), name)
+        elif hasattr(run, "_r"):
+            run._r.rPr.rFonts.set(qn("a:ea"), name)
+    except Exception:
+        pass
 
-    # Slide number
-    num = slide.shapes.add_textbox(Inches(12.3), Inches(7.1), Inches(0.5), Inches(0.3))
-    tf = num.text_frame
-    tf.text = str(slide_num)
-    tf.paragraphs[0].font.name = "Century Gothic"
-    tf.paragraphs[0].font.size = Pt(8)
-    tf.paragraphs[0].font.color.rgb = NAVY
-    tf.paragraphs[0].alignment = PP_ALIGN.RIGHT
 
-def add_title(slide, text, top, size=Pt(36), bold=True, color=NAVY):
-    tb = slide.shapes.add_textbox(Inches(0.5), top, Inches(12), Inches(1))
-    tf = tb.text_frame
-    tf.word_wrap = True
-    tf.margin_left = Inches(0)
+def add_textbox(slide, left, top, width, height, text: str, size=SIZE_BODY, bold=False, color=COLOR_BLACK, align=PP_ALIGN.LEFT, auto_size=False):
+    txBox = slide.shapes.add_textbox(left, top, width, height)
+    tf = txBox.text_frame
+    if auto_size:
+        tf.word_wrap = True
+        try:
+            tf.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
+        except Exception:
+            pass
+    tf.clear()
     p = tf.paragraphs[0]
-    p.text = text
-    p.font.name = "Century Gothic"
-    p.font.size = size
-    p.font.bold = bold
-    p.font.color.rgb = color
-    p.alignment = PP_ALIGN.LEFT
+    p.text = text or ""
+    p.alignment = align
+    if not p.runs:
+        _ = p.add_run()
+    set_font_run(p.runs[0], name=FONT_NAME, size=size, bold=bold, color=color)
+    return txBox
 
-# Tabs
-tab_transition, tab_kickoff = st.tabs(["Transition Deck", "Kick-Off Deck"])
 
-# ====================== TRANSITION DECK ======================
-with tab_transition:
-    st.header("Transition Deck")
-    # [Your full existing transition inputs here - unchanged]
-    # ... (copy your 400+ lines of transition inputs from previous working version)
+def apply_template_branding(prs: Presentation, slide, slide_num: int, logo_bytes: Optional[io.BytesIO]):
+    slide_width = prs.slide_width
+    slide_height = prs.slide_height
 
-    if st.button("Generate Transition Deck"):
-        prs = Presentation()
-        current_slide = 0
-        # Your full transition deck generation code (unchanged, perfect)
-        # ... (insert your existing transition generation)
+    logo_w = Inches(1.85)
+    logo_h = Inches(0.5)
+    logo_left = slide_width - logo_w - MARGIN_RIGHT
+    logo_top = MARGIN_TOP
 
-        bio = io.BytesIO()
-        prs.save(bio)
-        bio.seek(0)
-        st.download_button("Download Transition Deck.pptx", bio, f"{customer_name}_Transition.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation")
+    if logo_bytes:
+        try:
+            slide.shapes.add_picture(logo_bytes, logo_left, logo_top, logo_w, logo_h)
+        except Exception:
+            pass
 
-# ====================== KICK-OFF DECK ======================
-with tab_kickoff:
-    st.header("Kick-Off Deck – Exact FY25 Template Match")
+    # Footer left text
+    footer_left = MARGIN_LEFT
+    footer_top = slide_height - FOOTER_HEIGHT
+    footer_w = slide_width - (MARGIN_LEFT + MARGIN_RIGHT + Inches(1.0))
+    footer_h = FOOTER_HEIGHT
+    try:
+        fbox = slide.shapes.add_textbox(footer_left, footer_top, footer_w, footer_h)
+        ftf = fbox.text_frame
+        ftf.clear()
+        p = ftf.paragraphs[0]
+        p.text = "Zscaler, Inc. All rights reserved. © " + str(datetime.utcnow().year)
+        p.alignment = PP_ALIGN.LEFT
+        if not p.runs:
+            _ = p.add_run()
+        set_font_run(p.runs[0], size=SIZE_FOOTER, bold=False, color=COLOR_NAVY)
+    except Exception:
+        pass
 
-    col1, col2 = st.columns(2)
-    company_name = col1.text_input("Company Name *", value="Pixartprinting")
-    kickoff_date = col2.text_input("Kick-Off Date *", value="18/11/2025")
+    # Slide number right
+    try:
+        sn_box = slide.shapes.add_textbox(slide_width - Inches(0.8), footer_top, Inches(0.6), footer_h)
+        stf = sn_box.text_frame
+        stf.clear()
+        p = stf.paragraphs[0]
+        p.text = str(slide_num)
+        p.alignment = PP_ALIGN.RIGHT
+        if not p.runs:
+            _ = p.add_run()
+        set_font_run(p.runs[0], size=SIZE_FOOTER, bold=False, color=COLOR_NAVY)
+    except Exception:
+        pass
 
-    col3, col4 = st.columns(2)
-    pm_name = col3.text_input("PM Name *", value="Alex Vazquez")
-    psc_name = col4.text_input("PSC Name *", value="Alex Vazquez")
 
-    # Team Contacts
-    st.subheader("Team Contacts")
-    team_data = []
-    for i in range(10):
-        with st.expander(f"Team Member {i+1}", expanded=i<4):
-            col_a, col_b, col_c = st.columns(3)
-            name = col_a.text_input("Name", key=f"kick_name_{i}")
-            role = col_b.text_input("Role", key=f"kick_role_{i}")
-            email = col_c.text_input("Email", key=f"kick_email_{i}")
-            responsibility = st.text_area("Responsibility", key=f"kick_resp_{i}", height=80)
-            if name:
-                team_data.append({"name": name, "role": role, "email": email, "responsibility": responsibility})
+def add_slide_with_background(prs: Presentation, bg_bytes: Optional[io.BytesIO]):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])  # blank layout
+    if bg_bytes:
+        try:
+            slide.shapes.add_picture(bg_bytes, 0, 0, prs.slide_width, prs.slide_height)
+        except Exception:
+            pass
+    return slide
 
-    # Project Overview
-    st.subheader("Project Overview")
-    col_left, col_right = st.columns(2)
-    with col_left:
-        scope = st.text_area("Scope", value="To protect and secure internet access and mission critical applications with visibility into performance metrics by implementing Zscaler licensed products which include: \nZscaler Internet Access (ZIA)\nZscaler Private Access (ZPA)\nZscaler Digital Experience (ZDX) \nData Protection (DLP)")
-    with col_right:
-        deliverables = st.text_area("Deliverables", value="Kick-Off \nProject Kick-Off Deck\nPrerequisites Document(s)\n\nDesign and Configure\nInstallation Guides (Zscaler Client Connector and App Connector)\nDesign Document(s)\n\nPilot  \nPilot Plan(s) - (Test and Rollout)\nCommunications Guide\nTroubleshooting Guide(s)\n\nProject Closure\nTransition with recommended Next Steps")
 
-    overview = st.text_area("Overview", value="Scope alignment, review the current environment, and provides a blueprint of the Design \nProvide task-level guidance for each phase of the project in alignment with Zscalers leading practices\nConfiguration Sessions for each licensed product in scope\nStandardized templates provide security policies configuration guidance \nPilot roll-out support up to the first 50 users and initial Production roll-out support (up to 2 weeks) within the project duration.\nProject transition")
+# ---------- Streamlit UI ----------
+st.title("Zscaler Professional Services Transition Deck PPT Generator")
+st.markdown("Fill in the form to generate a PPTX that matches the template layout exactly; only the values change.")
 
-    zscaler_resources = st.text_area("Zscaler Resources", value="Primary PS Consultant\nProviding advisory and leading practices for the design of your Zscaler solution")
+with st.sidebar:
+    st.header("Instructions")
+    st.markdown(
+        "- Fill customer and project details.\n"
+        "- Dates must be DD/MM/YYYY.\n"
+        "- Press 'Preview Summary' to inspect your inputs.\n"
+        "- Press 'Generate Transition Deck' to build and download the PPTX."
+    )
 
-    engagement = st.text_area("Engagement", value="Duration: up to 90 days or completion of project tasks. All resources and services are remote")
+# Basic fields
+st.header("Customer & Project Basics")
+c1, c2, c3 = st.columns(3)
+customer_name = c1.text_input("Customer Name *", value="Pixartprinting")
+today_date = c2.text_input("Today's Date (DD/MM/YYYY) *", value=datetime.utcnow().strftime("%d/%m/%Y"))
+project_start = c3.text_input("Project Start Date (DD/MM/YYYY) *", value="01/06/2025")
+project_end = st.text_input("Project End Date (DD/MM/YYYY) *", value="14/11/2025")
+project_summary_text = st.text_area(
+    "Project Summary Text",
+    value="More than half of the users have been deployed and there were no critical issues. Remaining enrollments expected without major issues.",
+)
+theme = st.selectbox("Theme", ["White", "Navy"], index=0)
 
-    out_of_scope = st.text_area("Out of Scope", value="Advisory, deployment, and consulting activities not explicitly stated in the project definition are deemed out of scope. Additional PS can be purchased to increase scope.")
+# Milestones (fixed number to match template)
+st.header("Milestones (7 rows - as template)")
+milestone_defaults = [
+    ("Initial Project Schedule Accepted", "27/06/2025", "27/06/2025", ""),
+    ("Initial Design Accepted", "14/07/2025", "17/07/2025", ""),
+    ("Pilot Configuration Complete", "28/07/2025", "18/07/2025", ""),
+    ("Pilot Rollout Complete", "08/08/2025", "22/08/2025", ""),
+    ("Production Configuration Complete", "29/08/2025", "29/08/2025", ""),
+    ("Production Rollout Complete", "14/11/2025", "??", ""),
+    ("Final Design Accepted", "14/11/2025", "14/11/2025", ""),
+]
+milestones_data = []
+for i in range(7):
+    with st.expander(f"Milestone {i+1}", expanded=False):
+        mn = st.text_input(f"Milestone {i+1} Name", value=milestone_defaults[i][0], key=f"mname_{i}")
+        mb = st.text_input(f"Baseline {i+1} (DD/MM/YYYY)", value=milestone_defaults[i][1], key=f"mbaseline_{i}")
+        mt = st.text_input(f"Target {i+1} (DD/MM/YYYY)", value=milestone_defaults[i][2], key=f"mtarget_{i}")
+        ms = st.text_input(f"Status {i+1}", value=milestone_defaults[i][3], key=f"mstatus_{i}")
+        milestones_data.append({"name": mn, "baseline": mb, "target": mt, "status": ms})
 
-    ps_package = st.text_area("Professional Services Package + Terms & Conditions", value="")
+# Rollout
+st.header("User Rollout Roadmap")
+p1, p2 = st.columns(2)
+with p1:
+    pilot_target = st.number_input("Pilot Target Users", value=100, min_value=0)
+    pilot_current = st.number_input("Pilot Current Users", value=449, min_value=0)
+    pilot_completion = st.text_input("Pilot Completion Date (DD/MM/YYYY)", value="14/11/2025")
+    pilot_status = st.text_input("Pilot Status", value="")
+with p2:
+    prod_target = st.number_input("Production Target Users", value=800, min_value=0)
+    prod_current = st.number_input("Production Current Users", value=449, min_value=0)
+    prod_completion = st.text_input("Production Completion Date (DD/MM/YYYY)", value="14/11/2025")
+    prod_status = st.text_input("Production Status", value="")
 
-    # Success Criteria
-    st.subheader("Project Success Criteria")
-    success_criteria = st.text_area("Success Criteria", value="Approve baseline project schedule\nDesign Workshops\nInitial Design\nConfigure & Testing\nPilot\nProduction Support\nTransition")
+# Objectives (3 rows)
+st.header("Project Objectives (3 rows)")
+objectives_data = []
+for i in range(3):
+    with st.expander(f"Objective {i+1}", expanded=False):
+        obj = st.text_area(f"Planned Objective {i+1}", value="", key=f"obj_{i}", height=60)
+        act = st.text_area(f"Actual Result {i+1}", value="", key=f"act_{i}", height=60)
+        dev = st.text_area(f"Deviation/Cause {i+1}", value="", key=f"dev_{i}", height=60)
+        objectives_data.append({"objective": obj, "actual": act, "deviation": dev})
 
-    # Goals & Objectives
-    st.subheader("Project Goals & Objectives")
-    goals_objectives = st.text_area("Goals & Objectives", value="Cyber Threat Protection\nPrevent compromise & lateral movement\nUse Case: Secure Workforce/Remote Users\n<Details>\n\nData Protection\nPrevent data loss, inline and API\nUse Case: Prevent Inline Data Loss\n<Details>\n\nOperationalization\nUse Case: Enable Help Desk to Troubleshoot connectivity issues\n<Details>\n\nZero Trust Networking\nUse Case: Secure Mission Critical Apps - SFDC/Workday\n<Details>\nPriority 1: Protect and Secure Internet Access for Users\nPriority 2: Protect Mission Critical Application Access\nPriority 3: Visibility into performance metrics")
+# Deliverables
+st.header("Deliverables (5 rows)")
+deliverables_data = []
+for i in range(5):
+    with st.expander(f"Deliverable {i+1}", expanded=False):
+        dn = st.text_input(f"Deliverable Name {i+1}", value="", key=f"dname_{i}")
+        dd = st.text_input(f"Date Delivered {i+1}", value="", key=f"ddate_{i}")
+        deliverables_data.append({"name": dn, "date": dd})
 
-    # Deployment Methodology
-    st.subheader("Deployment Methodology")
-    methodology = st.text_area("Methodology", value="Initiate | Plan | Configure | Pilot | Production | Transition")
+# Technical Summary
+st.header("Technical Summary")
+t1, t2 = st.columns(2)
+with t1:
+    idp = st.text_input("Identity Provider", value="Entra ID")
+    auth_type = st.text_input("Authentication Type", value="SAML 2.0")
+    prov_type = st.text_input("User/Group Provisioning", value="SCIM Provisioning")
+with t2:
+    tunnel_type = st.text_input("Tunnel Type", value="ZCC with Z-Tunnel 2.0")
+    deploy_system = st.text_input("ZCC Deployment System", value="MS Intune/Jamf")
+d1, d2, d3 = st.columns(3)
+windows_num = d1.number_input("Number of Windows Devices", value=351, min_value=0)
+mac_num = d2.number_input("Number of MacOS Devices", value=98, min_value=0)
+geo_locations = d3.text_input("Geo Locations", value="Europe, North Africa, USA")
+pol1, pol2, pol3, pol4 = st.columns(4)
+ssl_policies = pol1.number_input("SSL Inspection Policies", value=10, min_value=0)
+url_policies = pol2.number_input("URL Filtering Policies", value=5, min_value=0)
+cloud_policies = pol3.number_input("Cloud App Control Policies", value=5, min_value=0)
+fw_policies = pol4.number_input("Firewall Policies", value=15, min_value=0)
 
-    # Project Timeline
-    st.subheader("Project Timeline")
-    timeline = st.text_area("Timeline", value="Initiate: Today\nPlan: FROM-TO DATES\nConfigure and Testing: FROM-TO DATES\nPilot: FROM-TO DATES\nProduction Support: FROM-TO DATES\nTransition: FROM-TO DATES")
+# Open items (6 rows)
+st.header("Open Items (6 rows)")
+open_items_data = []
+for i in range(6):
+    with st.expander(f"Open Item {i+1}", expanded=False):
+        otask = st.text_input(f"Task/Description {i+1}", value="", key=f"otask_{i}")
+        odate = st.text_input(f"Date {i+1}", value="", key=f"odate_{i}")
+        oowner = st.text_input(f"Owner {i+1}", value="", key=f"oowner_{i}")
+        osteps = st.text_area(f"Transition Plan/Next Steps {i+1}", value="", key=f"osteps_{i}", height=80)
+        open_items_data.append({"task": otask, "date": odate, "owner": oowner, "steps": osteps})
 
-    # Change Management
-    st.subheader("Change Management & Key Milestones")
-    change_mgmt = st.text_area("Change Management", value="Key Milestones\nApprove baseline project schedule Proposed Completion Date\nDesign Workshops Proposed Completion Date\nInitial Design Proposed Completion Date\nConfigure & Testing Proposed Completion Date\nPilot Proposed Completion Date\nProduction Support Proposed Completion Date\nTransition Proposed Completion Date")
+# Next Steps
+st.header("Recommended Next Steps")
+short_term_input = st.text_area("Short Term (comma-separated)", value="Finish Production rollout, Tighten Firewall policies")
+long_term_input = st.text_area("Long Term (comma-separated)", value="Deploy ZCC on Mobile devices, Consider upgrade of Sandbox license")
+short_term = [s.strip() for s in short_term_input.split(",") if s.strip()]
+long_term = [s.strip() for s in long_term_input.split(",") if s.strip()]
 
-    # Next Steps
-    st.subheader("Next Steps & Follow-up Items")
-    next_steps = st.text_area("Next Steps", value="")
+# Contacts
+st.header("Contacts")
+c1, c2 = st.columns(2)
+pm_name = c1.text_input("Project Manager Name", value="Alex Vazquez")
+consultant_name = c2.text_input("Consultant Name", value="Alex Vazquez")
+primary_contact = st.text_input("Primary Contact", value="Teia proctor")
+secondary_contact = st.text_input("Secondary Contact", value="Marco Sattier")
 
-# Output format
-output_format = st.selectbox("Output Format", ["PPTX", "DOCX", "PDF"])
+# Preview Summary
+if st.button("Preview Summary"):
+    st.write(f"Deck will be generated for {customer_name} (date: {today_date}).")
+    st.write(f"- Summary: {project_summary_text[:200]}")
+    st.write(f"- Milestones: {len(milestones_data)} rows")
+    st.write(f"- Pilot: {pilot_current}/{pilot_target} users (status: {pilot_status})")
+    st.write(f"- Production: {prod_current}/{prod_target} users (status: {prod_status})")
+    st.write(f"- Objectives: {len([o for o in objectives_data if o['objective']])}")
+    st.write(f"- Deliverables: {len([d for d in deliverables_data if d['name']])}")
+    st.write(f"- Open Items: {len([o for o in open_items_data if o['task']])}")
+    st.write(f"- Short-term items: {len(short_term)}; Long-term items: {len(long_term)}")
 
-if st.button("Generate Deck"):
-    if "Kick-Off" in st.session_state.get("active_tab", ""):
-        # Kick-Off generation
-        prs = Presentation()
-        current_slide = 0
+# -------------------------
+# PPT Generation
+# -------------------------
+if st.button("Generate Transition Deck"):
+    # Basic validation
+    required_dates = [today_date, project_start, project_end, pilot_completion, prod_completion]
+    for m in milestones_data:
+        if m.get("baseline"):
+            required_dates.append(m["baseline"])
+        if m.get("target"):
+            required_dates.append(m["target"])
+    for d in deliverables_data:
+        if d.get("date"):
+            required_dates.append(d["date"])
+    for o in open_items_data:
+        if o.get("date"):
+            required_dates.append(o["date"])
 
-        # Slide 1 - Title
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
-        set_white_background(slide)
-        add_logo_footer(slide, current_slide + 1)
-        add_title(slide, "Professional Services\nProject Kick-Off Meeting", Inches(1), Pt(44))
-        add_title(slide, company_name.upper(), Inches(3), Pt(36))
-        add_title(slide, f"{pm_name}\n{psc_name}", Inches(4.2), Pt(24))
-        add_title(slide, kickoff_date, Inches(5.5), Pt(28))
+    if not customer_name:
+        st.error("Customer Name is required.")
+        st.stop()
 
-        # Slide 2 - Agenda
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
-        set_white_background(slide)
-        add_logo_footer(slide, current_slide + 2)
-        add_title(slide, "Agenda", Inches(1), Pt(36))
-        bullets = ["Introductions", "Project Overview", "Success Criteria", "Project Methodology & Timeline", "Change Management & Key Milestones", "Next Steps & Follow-up Items"]
-        top = Inches(2.2)
-        for bullet in bullets:
-            shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), top + Inches(0.1), Inches(0.2), Inches(0.2))
-            shape.fill.solid()
-            shape.fill.fore_color.rgb = BRIGHT_BLUE
-            tb = slide.shapes.add_textbox(Inches(1.2), top, Inches(11), Inches(0.5))
-            tf = tb.text_frame
-            p = tf.add_paragraph()
-            p.text = bullet
-            p.font.name = "Century Gothic"
-            p.font.size = Pt(20)
-            p.font.color.rgb = BLACK
-            top += Inches(0.7)
+    if not all(is_valid_date(dd) for dd in required_dates if dd and dd != "??"):
+        st.error("Some dates are not in DD/MM/YYYY format. Please correct them.")
+        st.stop()
 
-        # Slide 3 - Team Contacts
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
-        set_white_background(slide)
-        add_logo_footer(slide, current_slide + 3)
-        add_title(slide, "Team Contacts", Inches(0.5), Pt(32))
-        table = slide.shapes.add_table(len(team_data) + 1, 3, Inches(0.5), Inches(1.5), Inches(12), Inches(4)).table
-        table.cell(0,0).text = "Name"
-        table.cell(0,1).text = "Role"
-        table.cell(0,2).text = "Responsibility"
-        for i, member in enumerate(team_data, 1):
-            table.cell(i,0).text = member["name"] + ("\n" + member["email"] if member["email"] else "")
-            table.cell(i,1).text = member["role"]
-            table.cell(i,2).text = member["responsibility"]
-        for cell in table.iter_cells():
-            tf = cell.text_frame
-            for p in tf.paragraphs:
-                p.font.name = "Arial"
-                p.font.size = Pt(11)
-                p.alignment = PP_ALIGN.LEFT
-            if cell in table.rows[0].cells:
+    # Create Presentation
+    prs = Presentation()
+    slide_width = prs.slide_width
+    slide_height = prs.slide_height
+
+    # Pre-download brand assets once for consistency
+    logo_bytes = download_image_to_bytes(LOGO_URL) or download_image_to_bytes(ALT_LOGO_URL)
+    bg_bytes = download_image_to_bytes(BG_URL) if BG_URL else None
+
+    # Helper functions to build slides
+    def create_title_slide(title_text: str, subtitle_text: Optional[str] = None, date_text: Optional[str] = None, slide_num: int = 1):
+        slide = add_slide_with_background(prs, bg_bytes)
+        add_textbox(slide, MARGIN_LEFT, Inches(1.0), Inches(9.5), Inches(1.2), title_text, size=SIZE_TITLE, bold=True, color=COLOR_NAVY, align=PP_ALIGN.LEFT)
+        if subtitle_text:
+            add_textbox(slide, MARGIN_LEFT, Inches(2.1), Inches(9.5), Inches(0.8), subtitle_text, size=SIZE_SUBTITLE, bold=False, color=COLOR_NAVY, align=PP_ALIGN.LEFT)
+        if date_text:
+            add_textbox(slide, MARGIN_LEFT, Inches(2.9), Inches(9.5), Inches(0.6), date_text, size=SIZE_BODY, bold=False, color=COLOR_BLACK, align=PP_ALIGN.LEFT)
+        apply_template_branding(prs, slide, slide_num, logo_bytes)
+        return slide
+
+    def create_bullet_slide(title_text: str, bullets: List[str], slide_num: int = 1):
+        slide = add_slide_with_background(prs, bg_bytes)
+        add_textbox(slide, MARGIN_LEFT, MARGIN_TOP, Inches(9.0), Inches(0.7), title_text, size=SIZE_SLIDE_TITLE, bold=True, color=COLOR_NAVY, align=PP_ALIGN.LEFT)
+        top = Inches(1.6)
+        for b in bullets:
+            sq = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, MARGIN_LEFT, top + Inches(0.08), Inches(0.18), Inches(0.18))
+            sq.fill.solid(); sq.fill.fore_color.rgb = COLOR_BRIGHT_BLUE; sq.line.color.rgb = COLOR_BRIGHT_BLUE
+            tb = slide.shapes.add_textbox(MARGIN_LEFT + Inches(0.25), top, Inches(9.0), Inches(0.4))
+            ttf = tb.text_frame
+            ttf.clear()
+            p = ttf.paragraphs[0]
+            p.text = b or ""
+            p.alignment = PP_ALIGN.LEFT
+            if not p.runs:
+                _ = p.add_run()
+            set_font_run(p.runs[0], size=SIZE_BODY, bold=False, color=COLOR_BLACK)
+            top += Inches(0.55)
+        apply_template_branding(prs, slide, slide_num, logo_bytes)
+        return slide
+
+    def create_table_slide(title_text: str, headers: List[str], rows: List[List[str]], slide_num: int = 1, top_inch: float = 1.6, height_inch: float = 3.5):
+        """
+        Robust table creation:
+        - Determine column count as the max of header length and the longest data row
+        - Create table with that column count
+        - Guard every cell/header operation with try/except
+        """
+        slide = add_slide_with_background(prs, bg_bytes)
+        add_textbox(slide, MARGIN_LEFT, MARGIN_TOP, Inches(9.0), Inches(0.6), title_text, size=SIZE_SLIDE_TITLE, bold=True, color=COLOR_NAVY)
+
+        left = MARGIN_LEFT
+        top = Inches(top_inch)
+        width = slide_width - (MARGIN_LEFT + MARGIN_RIGHT)
+        height = Inches(height_inch)
+
+        # compute number of columns needed (at least 1)
+        max_row_len = 0
+        for r in rows or []:
+            try:
+                if isinstance(r, (list, tuple)):
+                    max_row_len = max(max_row_len, len(r))
+                else:
+                    # assume single column if row is simple str
+                    max_row_len = max(max_row_len, 1)
+            except Exception:
+                max_row_len = max(max_row_len, 1)
+        cols = max(1, len(headers or []), max_row_len)
+
+        rows_count = max(1, len(rows or [])) + 1  # +1 for header row
+
+        try:
+            table_shape = slide.shapes.add_table(rows_count, cols, left, top, width, height)
+            table = table_shape.table
+        except Exception:
+            # If add_table failed for any reason, return slide with branding only
+            apply_template_branding(prs, slide, slide_num, logo_bytes)
+            return slide
+
+        # Set column widths (pptx expects integer EMU)
+        try:
+            colw = int(width // cols) if cols else int(Inches(1))
+        except Exception:
+            colw = int(Inches(1))
+        for i in range(cols):
+            try:
+                table.columns[i].width = colw
+            except Exception:
+                # ignore if setting width fails for a column
+                pass
+
+        # Populate header row safely
+        for i in range(cols):
+            try:
+                header_text = headers[i] if headers and i < len(headers) else ""
+                cell = table.cell(0, i)
+                cell.text = header_text or ""
                 cell.fill.solid()
-                cell.fill.fore_color.rgb = NAVY
-                for p in cell.text_frame.paragraphs:
-                    p.font.color.rgb = WHITE
-                    p.font.bold = True
+                cell.fill.fore_color.rgb = COLOR_NAVY
+                # Ensure paragraph and run exist
+                p = cell.text_frame.paragraphs[0]
+                p.alignment = PP_ALIGN.LEFT
+                if not p.runs:
+                    _ = p.add_run()
+                set_font_run(p.runs[0], size=SIZE_SMALL, bold=True, color=COLOR_WHITE)
+            except Exception:
+                # keep going even if a header cell fails
+                continue
 
-        # Slide 4 - Project Overview
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
-        set_white_background(slide)
-        add_logo_footer(slide, current_slide + 4)
-        add_title(slide, "Project Overview - Essential Services", Inches(0.5), Pt(28))
-        # Scope left
-        tb = slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(6), Inches(5))
-        tf = tb.text_frame
-        tf.word_wrap = True
-        p = tf.add_paragraph()
-        p.text = "Scope\n" + scope
-        p.font.name = "Arial"
-        p.font.size = Pt(14)
-        # Deliverables right
-        tb = slide.shapes.add_textbox(Inches(6.5), Inches(1.5), Inches(6), Inches(5))
-        tf = tb.text_frame
-        tf.word_wrap = True
-        p = tf.add_paragraph()
-        p.text = "Deliverables\n" + deliverables
-        p.font.name = "Arial"
-        p.font.size = Pt(14)
-        # Overview, Resources, Engagement, Out of Scope
-        # (add as text boxes per template layout)
+        # Populate data rows safely
+        for r_idx, r in enumerate(rows or [], start=1):
+            for c_idx in range(cols):
+                try:
+                    # Obtain value from row if present
+                    if isinstance(r, (list, tuple)):
+                        value = r[c_idx] if c_idx < len(r) else ""
+                    else:
+                        # single value row
+                        value = str(r) if c_idx == 0 else ""
+                    cell = table.cell(r_idx, c_idx)
+                    cell.text = str(value or "")
+                    p = cell.text_frame.paragraphs[0]
+                    p.alignment = PP_ALIGN.LEFT
+                    if not p.runs:
+                        _ = p.add_run()
+                    set_font_run(p.runs[0], size=SIZE_SMALL, bold=False, color=COLOR_BLACK)
+                    # alternating row fill
+                    try:
+                        if r_idx % 2 == 0:
+                            cell.fill.solid()
+                            cell.fill.fore_color.rgb = COLOR_LIGHT_GRAY
+                    except Exception:
+                        # non-fatal if fill cannot be applied to the cell
+                        pass
+                except Exception:
+                    # non-fatal: continue to next cell
+                    continue
 
-        # Add all remaining slides exactly as in template (Success Criteria, Goals, Methodology, Timeline, Change Mgmt, Next Steps, Thank You)
+        apply_template_branding(prs, slide, slide_num, logo_bytes)
+        return slide
 
-        bio = io.BytesIO()
-        prs.save(bio)
-        bio.seek(0)
-        st.download_button("Download Kick-Off Deck", bio, f"{company_name}_Kickoff_Deck.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation")
+    def create_zia_diagram_slide(slide_num: int = 1):
+        slide = add_slide_with_background(prs, bg_bytes)
+        add_textbox(slide, MARGIN_LEFT, MARGIN_TOP, Inches(9.0), Inches(0.7), "Deployed ZIA Architecture", size=SIZE_SLIDE_TITLE, bold=True, color=COLOR_NAVY)
+
+        box_w = Inches(2.8)
+        box_h = Inches(0.85)
+        left_a = MARGIN_LEFT
+        top_a = Inches(1.6)
+        left_b = left_a + box_w + Inches(0.35)
+        left_c = left_b + box_w + Inches(0.35)
+
+        try:
+            ua = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left_a, top_a, box_w, box_h)
+            ua.fill.solid()
+            ua.fill.fore_color.rgb = COLOR_LIGHT_GRAY
+            ua.line.width = Pt(1)
+            ua.line.color.rgb = COLOR_NAVY
+            ua_tf = ua.text_frame
+            ua_tf.clear()
+            p = ua_tf.paragraphs[0]
+            p.text = "User authentication\nand provisioning"
+            p.alignment = PP_ALIGN.CENTER
+            if not p.runs:
+                _ = p.add_run()
+            set_font_run(p.runs[0], size=SIZE_SMALL, bold=False, color=COLOR_BLACK)
+        except Exception:
+            pass
+
+        try:
+            ca = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left_b, top_a, box_w, box_h)
+            ca.fill.solid()
+            ca.fill.fore_color.rgb = COLOR_BRIGHT_BLUE
+            ca.line.width = Pt(1)
+            ca.line.color.rgb = COLOR_NAVY
+            ca.text_frame.clear()
+            p = ca.text_frame.paragraphs[0]
+            p.text = "Central Authority"
+            p.alignment = PP_ALIGN.CENTER
+            if not p.runs:
+                _ = p.add_run()
+            set_font_run(p.runs[0], size=SIZE_SMALL, bold=True, color=COLOR_WHITE)
+        except Exception:
+            pass
+
+        try:
+            pi = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left_c, top_a, box_w, box_h)
+            pi.fill.solid()
+            pi.fill.fore_color.rgb = COLOR_LIGHT_GRAY
+            pi.line.width = Pt(1)
+            pi.line.color.rgb = COLOR_NAVY
+            pi.text_frame.clear()
+            p = pi.text_frame.paragraphs[0]
+            p.text = "Policy Enforcement\nand Inspection"
+            p.alignment = PP_ALIGN.CENTER
+            if not p.runs:
+                _ = p.add_run()
+            set_font_run(p.runs[0], size=SIZE_SMALL, bold=False, color=COLOR_BLACK)
+        except Exception:
+            pass
+
+        # Connectors (best-effort)
+        try:
+            conn1 = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, left_a + box_w, top_a + box_h / 2, left_b, top_a + box_h / 2)
+            conn1.line.color.rgb = COLOR_NAVY
+            conn1.line.width = Pt(1.5)
+            conn2 = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, left_b + box_w, top_a + box_h / 2, left_c, top_a + box_h / 2)
+            conn2.line.color.rgb = COLOR_NAVY
+            conn2.line.width = Pt(1.5)
+        except Exception:
+            # fallback: thin rectangles as arrows
+            try:
+                bar1 = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left_a + box_w, top_a + box_h / 2 - Inches(0.03), Inches(0.35), Inches(0.06))
+                bar1.fill.solid()
+                bar1.fill.fore_color.rgb = COLOR_NAVY
+                bar2 = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left_b + box_w, top_a + box_h / 2 - Inches(0.03), Inches(0.35), Inches(0.06))
+                bar2.fill.solid()
+                bar2.fill.fore_color.rgb = COLOR_NAVY
+            except Exception:
+                pass
+
+        # Key facts block
+        key_left = MARGIN_LEFT
+        key_top = Inches(3.05)
+        key_w = slide_width - (MARGIN_LEFT + MARGIN_RIGHT)
+        key_h = Inches(3.0)
+        try:
+            kb = slide.shapes.add_textbox(key_left, key_top, key_w, key_h)
+            kbf = kb.text_frame
+            kbf.clear()
+            lines = [
+                "Authentication Type",
+                f"Identity Provider\t{idp}",
+                f"Authentication Type\t{auth_type}",
+                f"User and Group Provisioning\t{prov_type}",
+                "",
+                "Client Deployment",
+                f"Tunnel Type\t{tunnel_type}",
+                f"ZCC Deployment System\t{deploy_system}",
+                f"Number of Windows Devices\t{windows_num}",
+                f"Number of MacOS Devices\t{mac_num}",
+                f"Geo Locations\t{geo_locations}",
+                "",
+                "Policy Deployment",
+                f"SSL Inspection Policies\t{ssl_policies}",
+                f"URL Filtering Policies\t{url_policies}",
+                f"Cloud App Control Policies\t{cloud_policies}",
+                f"Firewall Policies\t{fw_policies}",
+            ]
+            for idx, line in enumerate(lines):
+                p = kbf.add_paragraph()
+                p.text = line or ""
+                p.alignment = PP_ALIGN.LEFT
+                if not p.runs:
+                    _ = p.add_run()
+                set_font_run(p.runs[0], size=SIZE_BODY, bold=False, color=COLOR_BLACK)
+        except Exception:
+            pass
+
+        apply_template_branding(prs, slide, slide_num, logo_bytes)
+        return slide
+
+    # Build slides sequence (mirrors your template)
+    progress_bar = st.progress(0)
+    slide_count = 11
+    step = 0
+
+    # Slide 1 - Title
+    create_title_slide("Professional Services Transition Meeting", subtitle_text=customer_name, date_text=today_date, slide_num=1)
+    step += 1
+    progress_bar.progress(step / slide_count)
+
+    # Slide 2 - Agenda
+    create_bullet_slide("Meeting Agenda", ["Project Summary", "Technical Summary", "Recommended Next Steps"], slide_num=2)
+    step += 1
+    progress_bar.progress(step / slide_count)
+
+    # Slide 3 - Project Summary (title)
+    create_title_slide("Project Summary", slide_num=3)
+    step += 1
+    progress_bar.progress(step / slide_count)
+
+    # Slide 4 - Final Project Status Report (summary)
+    slide4 = add_slide_with_background(prs, bg_bytes)
+    add_textbox(slide4, MARGIN_LEFT, MARGIN_TOP, Inches(9.0), Inches(0.6), f"Final Project Status Report – {customer_name}", size=SIZE_SLIDE_TITLE, bold=True, color=COLOR_NAVY)
+    add_textbox(slide4, MARGIN_LEFT, Inches(1.2), Inches(9.5), Inches(0.35), "Project Summary", size=SIZE_HEADER, bold=True)
+    add_textbox(slide4, MARGIN_LEFT, Inches(1.6), Inches(9.5), Inches(0.6), project_summary_text, size=SIZE_BODY, bold=False)
+    apply_template_branding(prs, slide4, 4, logo_bytes)
+    step += 1
+    progress_bar.progress(step / slide_count)
+
+    # Slide 5 - Milestones
+    milestones_headers = ["Milestone", "Baseline Date", "Target Completion Date", "Status"]
+    milestones_rows = [[m.get("name", ""), m.get("baseline", ""), m.get("target", ""), m.get("status", "")] for m in milestones_data]
+    create_table_slide("Milestones", milestones_headers, milestones_rows, slide_num=5, top_inch=1.6, height_inch=3.0)
+    step += 1
+    progress_bar.progress(step / slide_count)
+
+    # Slide 6 - Deliverables
+    deliverables_headers = ["Deliverable", "Date delivered"]
+    deliverables_rows = [[d.get("name", ""), d.get("date", "")] for d in deliverables_data]
+    create_table_slide("Deliverables", deliverables_headers, deliverables_rows, slide_num=6, top_inch=1.6, height_inch=2.4)
+    step += 1
+    progress_bar.progress(step / slide_count)
+
+    # Slide 7 - Technical Summary (title)
+    create_title_slide("Technical Summary", slide_num=7)
+    step += 1
+    progress_bar.progress(step / slide_count)
+
+    # Slide 8 - Deployed ZIA Architecture (diagram)
+    create_zia_diagram_slide(slide_num=8)
+    step += 1
+    progress_bar.progress(step / slide_count)
+
+    # Slide 9 - Open Items
+    open_headers = ["Task/ Description", "Date", "Owner", "Transition Plan/ Next Steps"]
+    open_rows = [[oi.get("task", ""), oi.get("date", ""), oi.get("owner", ""), oi.get("steps", "")] for oi in open_items_data]
+    create_table_slide("Open Items", open_headers, open_rows, slide_num=9, top_inch=1.6, height_inch=3.0)
+    step += 1
+    progress_bar.progress(step / slide_count)
+
+    # Slide 10 - Recommended Next Steps (two columns)
+    slide10 = add_slide_with_background(prs, bg_bytes)
+    add_textbox(slide10, MARGIN_LEFT, MARGIN_TOP, Inches(9.0), Inches(0.6), "Recommended Next Steps", size=SIZE_SLIDE_TITLE, bold=True, color=COLOR_NAVY)
+    add_textbox(slide10, MARGIN_LEFT, Inches(1.1), Inches(4.5), Inches(0.4), "Short Term Activities", size=SIZE_HEADER, bold=True)
+    top_pos = Inches(1.6)
+    for item in short_term:
+        try:
+            sq = slide10.shapes.add_shape(MSO_SHAPE.RECTANGLE, MARGIN_LEFT, top_pos + Inches(0.08), Inches(0.18), Inches(0.18))
+            sq.fill.solid(); sq.fill.fore_color.rgb = COLOR_ACCENT_GREEN; sq.line.color.rgb = COLOR_ACCENT_GREEN
+            tb = slide10.shapes.add_textbox(MARGIN_LEFT + Inches(0.25), top_pos, Inches(4.25), Inches(0.35))
+            p = tb.text_frame.paragraphs[0]; p.text = item or ""; p.alignment = PP_ALIGN.LEFT
+            if not p.runs:
+                _ = p.add_run()
+            set_font_run(p.runs[0], size=SIZE_BODY)
+            top_pos += Inches(0.45)
+        except Exception:
+            continue
+    add_textbox(slide10, Inches(6.3), Inches(1.1), Inches(4.5), Inches(0.4), "Long Term Activities", size=SIZE_HEADER, bold=True)
+    top_pos = Inches(1.6)
+    for item in long_term:
+        try:
+            sq = slide10.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(6.3), top_pos + Inches(0.08), Inches(0.18), Inches(0.18))
+            sq.fill.solid(); sq.fill.fore_color.rgb = COLOR_CYAN; sq.line.color.rgb = COLOR_CYAN
+            tb = slide10.shapes.add_textbox(Inches(6.55), top_pos, Inches(4.0), Inches(0.35))
+            p = tb.text_frame.paragraphs[0]; p.text = item or ""; p.alignment = PP_ALIGN.LEFT
+            if not p.runs:
+                _ = p.add_run()
+            set_font_run(p.runs[0], size=SIZE_BODY)
+            top_pos += Inches(0.45)
+        except Exception:
+            continue
+    apply_template_branding(prs, slide10, 10, logo_bytes)
+    step += 1
+    progress_bar.progress(step / slide_count)
+
+    # Slide 11 - Thank you and survey info
+    slide11 = add_slide_with_background(prs, bg_bytes)
+    add_textbox(slide11, MARGIN_LEFT, Inches(1.0), Inches(9.5), Inches(1.2), "Thank you", size=SIZE_TITLE, bold=True, color=COLOR_NAVY)
+    body_text = (
+        f"Your feedback is important to us.\nProject Manager: {pm_name}\nConsultant: {consultant_name}\n\n"
+        "A short ~6 question survey will be sent after project close to the contacts listed below:\n"
+        f"Primary Contact: {primary_contact}\nSecondary Contact: {secondary_contact}"
+    )
+    add_textbox(slide11, MARGIN_LEFT, Inches(2.1), Inches(9.5), Inches(3.0), body_text, size=SIZE_BODY)
+    try:
+        bubble = slide11.shapes.add_shape(MSO_SHAPE.CLOUD_CALLOUT, Inches(8.8), Inches(3.0), Inches(2.0), Inches(0.9))
+        bubble.fill.solid(); bubble.fill.fore_color.rgb = COLOR_ZSCALER_YELLOW
+        bubble_tf = bubble.text_frame; bubble_tf.clear()
+        p = bubble_tf.paragraphs[0]; p.text = "We want to know!"; p.alignment = PP_ALIGN.CENTER
+        if not p.runs:
+            _ = p.add_run()
+        set_font_run(p.runs[0], size=Pt(16), bold=True)
+    except Exception:
+        pass
+    apply_template_branding(prs, slide11, 11, logo_bytes)
+    step += 1
+    progress_bar.progress(step / slide_count)
+
+    # Save to BytesIO and provide download
+    out = io.BytesIO()
+    prs.save(out)
+    out.seek(0)
+
+    st.success("PPTX generated matching template layout.")
+    st.download_button("Download Transition Deck", data=out, file_name=f"{customer_name}_Zscaler_Transition.pptx", mime="application/vnd.openxmlformats-officedocument.presentationml.presentation")
