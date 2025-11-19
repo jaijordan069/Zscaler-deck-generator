@@ -17,6 +17,8 @@ from pptx.enum.text import PP_ALIGN, MSO_AUTO_SIZE
 from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR
 from pptx.oxml.ns import qn
 from pptx.util import Length  # For type checking
+import numpy as np
+import matplotlib.pyplot as plt
 
 # -------------------------
 # Configuration / Constants (Updated for exact template match)
@@ -64,7 +66,7 @@ FOOTER_HEIGHT = Inches(0.35)
 
 # Assets (added alt logos, bg if needed)
 LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Zscaler_logo.svg/512px-Zscaler_logo.svg.png"
-FALLBACK_LOGO_URL = "https://seeklogo.com/images/Z/zscaler-logo-8A8D1E3C8E-seeklogo.com.png"
+FALLBACK_LOGO_URL = "https://brandlogos.net/wp-content/uploads/2022/12/zscaler-logo_brandlogos.net_mdymr.png"
 BG_URL = "https://slidemodel.com/wp-content/uploads/13081-01-gradient-designs-powerpoint-backgrounds-16x9-1.jpg"  # Blue gradient with faded office photo
 
 # Date regex
@@ -349,7 +351,7 @@ if st.button("Generate & Download PPTX"):
         prs = Presentation()
         slide_width = prs.slide_width
         slide_height = prs.slide_height
-        logo_bytes = download_image_to_bytes("https://brandlogos.net/wp-content/uploads/2022/12/zscaler-logo-logo_brandlogos.net_mdymr.png") or download_image_to_bytes(FALLBACK_LOGO_URL)
+        logo_bytes = download_image_to_bytes(LOGO_URL) or download_image_to_bytes(FALLBACK_LOGO_URL)
         bg_bytes = download_image_to_bytes(BG_URL) or generate_background()
 
         # Helper: Title Slide (tweaked positions, white text)
