@@ -17,8 +17,6 @@ from pptx.enum.text import PP_ALIGN, MSO_AUTO_SIZE
 from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR
 from pptx.oxml.ns import qn
 from pptx.util import Length  # For type checking
-import numpy as np
-import matplotlib.pyplot as plt
 
 # -------------------------
 # Configuration / Constants (Updated for exact template match)
@@ -501,8 +499,33 @@ if st.button("Generate & Download PPTX"):
             # Key facts (as table-like text)
             key_top = Inches(1.2)
             key_left = Inches(8.0)
-            key_text = f"Identity Provider: {idp}\nAuthentication Type: {auth_type}\nProvisioning: {prov_type}\n\nTunnel Type: {tunnel_type}\nDeployment System: {deploy_system}\nNumber of Windows and MacOS Devices: {windows_num} Windows\n{mac_num} MacOS\nGeo Locations: {geo_locations}\n\nPolicy Deployment\nSSL Inspection Policies: {ssl_policies}\nURL Filtering Policies: {url_policies}\nCloud App Control Policies: {cloud_policies}\nFirewall Policies: {fw_policies}"
+            key_text = f"Identity Provider: {idp}\nAuthentication Type: {auth_type}\nProvisioning: {prov_type}\n\nTunnel Type: {tunnel_type}\nDeployment System: {deploy_system}\nNumber of Windows and MacOS Devices: {windows_num} Windows\n98 MacOS Devices\nGeo Locations: {geo_locations}\n\nPolicy Deployment\nSSL Inspection Policies: {ssl_policies}\nURL Filtering Policies: {url_policies}\nCloud App Control Policies: {cloud_policies}\nFirewall Policies: {fw_policies}"
             add_textbox(slide, key_left, key_top, Inches(4.0), Inches(4.0), key_text, SIZE_SMALL)
+            # Add overview pointer
+            pointer_top = top3 + box_h + Inches(0.5)
+            add_textbox(slide, MARGIN_LEFT, pointer_top, Inches(9.0), Inches(0.5), "An overview of the deployed architecture and key facts - diagram stays generic (custom diagram will be in design document) \nNumbers on the diagram help to orient the conversation", SIZE_SMALL)
+            apply_template_branding(prs, slide, slide_num, logo_bytes)
+            return slide
+
+        # Helper: Next Steps Slide (with pointer)
+        def create_next_steps_slide(short_term, long_term, slide_num: int = 1):
+            slide = add_slide_with_background(prs, bg_bytes)
+            add_textbox(slide, MARGIN_LEFT, Inches(0.45), Inches(8.0), Inches(0.5), "Recommended Next Steps", SIZE_SLIDE_TITLE, True, COLOR_NAVY)
+            # Short Term
+            add_textbox(slide, MARGIN_LEFT, Inches(1.2), Inches(4.0), Inches(0.4), "Short Term Activities", SIZE_HEADER, True)
+            top = Inches(1.6)
+            for item in short_term:
+                add_textbox(slide, MARGIN_LEFT + Inches(0.3), top, Inches(3.5), Inches(0.3), item, SIZE_BODY)
+                top += Inches(0.4)
+            # Long Term
+            add_textbox(slide, Inches(5.5), Inches(1.2), Inches(4.0), Inches(0.4), "Long Term Activities", SIZE_HEADER, True)
+            top = Inches(1.6)
+            for item in long_term:
+                add_textbox(slide, Inches(5.8), top, Inches(3.5), Inches(0.3), item, SIZE_BODY)
+                top += Inches(0.4)
+            # Add activities pointer
+            pointer_top = max(top, Inches(1.6) + len(long_term) * Inches(0.4)) + Inches(0.5)
+            add_textbox(slide, MARGIN_LEFT, pointer_top, Inches(9.0), Inches(0.5), "Next Short- and Long-Term Activities\nIf additional resources and/or expertise are required to complete any of the recommendations above, customer should consider engaging Zscaler Professional Services to assist with this effort.", SIZE_SMALL)
             apply_template_branding(prs, slide, slide_num, logo_bytes)
             return slide
 
@@ -534,7 +557,7 @@ if st.button("Generate & Download PPTX"):
         # Dates
         add_textbox(slide4, MARGIN_LEFT, Inches(2.5), Inches(4.0), Inches(1.0), f"Today's Date: {today_date} | Start: {project_start} | End: {project_end}", SIZE_BODY)
         # Who/What/When/Why box (new)
-        who_text = "Who: External & Internal Project Team\nWhat: Project Status Report\nWhen: Weekly\nWhy: Keeps stakeholders informed on scope, schedule, risks, etc.\nMandatory: Yes"
+        who_text = "Who: External & Internal Project Team\nWhat: Project Status Report\nWhen: Weekly\nWhy: Keeps stakeholders informed on a weekly basis on critical aspects of the project such as scope, schedule, risks, issues, and next steps. \nMandatory: Yes (all projects)"
         add_textbox(slide4, Inches(6.0), Inches(3.0), Inches(4.0), Inches(2.0), who_text, SIZE_SMALL)
         # RAG Key (new table-like)
         rag_text = "RAG Status Key:\nRed - Not On Track\nAmber - At Risk\nGreen - On Track\nBlue - Complete\nGray - Not Started"
@@ -567,10 +590,10 @@ if st.button("Generate & Download PPTX"):
         current += 1
         progress.progress(current / total_slides)
 
-        # Slide 8: Deliverables Table
+        # Slide 8: Deliverables Table (aligned)
         del_headers = ["Deliverable", "Date delivered"]
         del_rows = [[d["name"], d["date"]] for d in deliverables_data]
-        create_table_slide("Deliverables", del_headers, del_rows, 8, top_inch=1.2)
+        create_table_slide("Deliverables", del_headers, del_rows, 8, top_inch=1.2, height_inch=2.4, col_widths=[Inches(5.0), Inches(3.0)])
         current += 1
         progress.progress(current / total_slides)
 
@@ -606,6 +629,9 @@ if st.button("Generate & Download PPTX"):
         for item in long_term:
             add_textbox(slide12, Inches(5.8), top, Inches(3.5), Inches(0.3), item, SIZE_BODY)
             top += Inches(0.4)
+        # Add activities pointer
+        pointer_top = max(top, Inches(1.6) + len(long_term) * Inches(0.4)) + Inches(0.5)
+        add_textbox(slide12, MARGIN_LEFT, pointer_top, Inches(9.0), Inches(0.5), "Next Short- and Long-Term Activities\nIf additional resources and/or expertise are required to complete any of the recommendations above, customer should consider engaging Zscaler Professional Services to assist with this effort.", SIZE_SMALL)
         apply_template_branding(prs, slide12, 12, logo_bytes)
         current += 1
         progress.progress(current / total_slides)
