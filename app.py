@@ -349,7 +349,7 @@ if st.button("Generate & Download PPTX"):
         prs = Presentation()
         slide_width = prs.slide_width
         slide_height = prs.slide_height
-        logo_bytes = download_image_to_bytes(LOGO_URL) or download_image_to_bytes(FALLBACK_LOGO_URL)
+        logo_bytes = download_image_to_bytes("https://brandlogos.net/wp-content/uploads/2022/12/zscaler-logo-logo_brandlogos.net_mdymr.png") or download_image_to_bytes(FALLBACK_LOGO_URL)
         bg_bytes = download_image_to_bytes(BG_URL) or generate_background()
 
         # Helper: Title Slide (tweaked positions, white text)
