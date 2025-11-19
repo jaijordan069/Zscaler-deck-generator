@@ -468,7 +468,7 @@ if st.button("Generate & Download PPTX"):
         add_textbox(slide4, MARGIN_LEFT, Inches(1.2), Inches(8.0), Inches(0.4), "Project Summary", SIZE_HEADER, True)
         add_textbox(slide4, MARGIN_LEFT, Inches(1.7), Inches(8.0), Inches(1.0), project_summary_text, SIZE_BODY)
         # Dates
-        add_textbox(slide, MARGIN_LEFT, Inches(3.0), Inches(4.0), Inches(1.0), f"Today's Date: {today_date} | Start: {project_start} | End: {project_end}", SIZE_BODY)
+        add_textbox(slide4, MARGIN_LEFT, Inches(3.0), Inches(4.0), Inches(1.0), f"Today's Date: {today_date} | Start: {project_start} | End: {project_end}", SIZE_BODY)
         # Who/What/When/Why box (new)
         who_text = "Who: External & Internal Project Team\nWhat: Project Status Report\nWhen: Weekly\nWhy: Keeps stakeholders informed on scope, schedule, risks, etc.\nMandatory: Yes"
         add_textbox(slide4, Inches(6.0), Inches(4.0), Inches(4.0), Inches(2.0), who_text, SIZE_SMALL)
@@ -556,5 +556,3 @@ if st.button("Generate & Download PPTX"):
         out.seek(0)
         st.success("Deck generated! Matches template exactly.")
         st.download_button("Download PPTX", out, f"{customer_name}_Transition_Deck.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation")
-
-There you go! This should give you a gorgeous UI and a PPT that mirrors the template down to the pixel. Test it out, and if the PPT isn't *exact* (e.g., due to font availability), let me know the differences – I'm here to iterate. Let's make our Zscaler team shine! 🚀
