@@ -186,14 +186,6 @@ if theme == "Dark":
 st.title("Zscaler Professional Services Transition Deck Generator")
 st.markdown("Enter details below. Defaults match the Pixartprinting template. UI is organized for ease!")
 
-# Image Uploaders (wrapped in expander to hide clutter)
-with st.expander("Optional: Upload Template Images", expanded=False):
-    uploaded_images = {}
-    for img_name in ["image3.jpg", "image4.png", "image5.png", "image6.png", "image35.png", "image36.svg", "image7.png", "image10.png", "image8.jpg", "image2.png", "image37.png", "image9.png", "image38.png", "image39.png", "image40.png", "image41.jpg", "image1.png"]:
-        uploaded = st.file_uploader(f"Upload {img_name}", type=["jpg", "png", "svg"])
-        if uploaded:
-            uploaded_images[img_name] = io.BytesIO(uploaded.read())
-
 # Customer & Project (balanced columns)
 st.header("Customer & Project Basics")
 col1, col2, col3 = st.columns(3)
@@ -253,7 +245,7 @@ with st.expander("Edit Objectives (3 rows)", expanded=True):
         dev = st.text_area(f"Deviation {i+1}", default[2], height=50)
         objectives_data.append({"objective": obj, "actual": act, "deviation": dev})
 
-# Deliverables (expander, defaults)
+# Deliverables (expander, defaults from template)
 st.header("Deliverables")
 deliverables_defaults = [
     ("Kick-Off Meeting and Slides", "27/06/2025"),
@@ -335,8 +327,6 @@ if st.button("Preview Inputs"):
     st.write(f"**Tech:** {windows_num} Windows, {mac_num} Mac")
     st.write(f"**Open Items:** {len(open_items_data)} rows")
     st.write(f"**Next Steps:** {len(short_term)} short, {len(long_term)} long")
-    if uploaded_images:
-        st.write("**Uploaded Images:** " + ", ".join(uploaded_images.keys()))
 
 # Generation (with validation)
 if st.button("Generate & Download PPTX"):
@@ -363,10 +353,6 @@ if st.button("Generate & Download PPTX"):
             if date_text:
                 add_textbox(slide, MARGIN_LEFT, Inches(2.6), Inches(8.0), Inches(0.5), date_text, SIZE_BODY, color=COLOR_WHITE)
             apply_template_branding(prs, slide, slide_num, logo_bytes)
-            # Add images if uploaded (placeholder positions)
-            for img_name, img_bytes in uploaded_images.items():
-                if "image1" in img_name:  # Example mapping
-                    slide.shapes.add_picture(img_bytes, Inches(9.0), Inches(1.0), Inches(2.0), Inches(1.5))
             return slide
 
         # Helper: Bullet Slide (same, but added image support)
