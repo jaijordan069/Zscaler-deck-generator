@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Streamlit app: Zscaler Professional Services Transition Deck PPT Generator
-Improved version: Attractive UI, exact template match, image handling, more defaults.
+Streamlit app: Zscaler Professional Services Transition Deck PPT Generator.
 """
 from __future__ import annotations
 import io
@@ -16,6 +15,7 @@ from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_AUTO_SIZE
 from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR
 from pptx.oxml.ns import qn
+from pptx.util import Length  # Added for type checking
 
 # -------------------------
 # Configuration / Constants (Updated for exact template match)
@@ -360,8 +360,8 @@ if st.button("Generate & Download PPTX"):
             apply_template_branding(prs, slide, slide_num, logo_bytes)
             return slide
 
-        # Helper: Table Slide (enhanced with RAG colors, exact widths)
-        def create_table_slide(title_text: str, headers: List[str], rows: List[List[str]], slide_num: int = 1, top_inch: float = 1.5, height_inch: float = 4.0, col_widths: List[float] = None):
+        # Helper: Table Slide (enhanced with RAG colors, exact widths, and run guards to fix IndexError)
+        def create_table_slide(title_text: str, headers: List[str], rows: List[List[str]], slide_num: int = 1, top_inch: float = 1.5, height_inch: float = 4.0, col_widths: List = None):
             slide = add_slide_with_background(prs, bg_bytes)
             add_textbox(slide, MARGIN_LEFT, Inches(0.5), Inches(8.0), Inches(0.5), title_text, SIZE_SLIDE_TITLE, True, COLOR_NAVY)
             left = MARGIN_LEFT
@@ -370,25 +370,32 @@ if st.button("Generate & Download PPTX"):
             height = Inches(height_inch)
             cols = len(headers)
             table = slide.shapes.add_table(len(rows) + 1, cols, left, top, width, height).table
-            # Set widths (EMU, exact from template)
+            # Set widths (EMU, exact from template) - handle Length or float
             if not col_widths:
                 col_widths = [width / cols] * cols
             for i, w in enumerate(col_widths):
-                table.columns[i].width = Emu(w)
-            # Headers
+                if isinstance(w, Length):
+                    table.columns[i].width = w
+                else:
+                    table.columns[i].width = Emu(Inches(w))
+            # Headers (with run guard)
             for i, h in enumerate(headers):
                 cell = table.cell(0, i)
-                cell.text = h
+                cell.text = str(h)
                 cell.fill.solid()
                 cell.fill.fore_color.rgb = COLOR_NAVY
                 p = cell.text_frame.paragraphs[0]
+                if not p.runs:
+                    p.add_run()
                 set_font_run(p.runs[0], size=SIZE_HEADER, bold=True, color=COLOR_WHITE)
-            # Rows (with RAG if status column)
+            # Rows (with RAG if status column, and run guard)
             for r, row in enumerate(rows, 1):
                 for c, val in enumerate(row):
                     cell = table.cell(r, c)
-                    cell.text = val
+                    cell.text = str(val)
                     p = cell.text_frame.paragraphs[0]
+                    if not p.runs:
+                        p.add_run()
                     set_font_run(p.runs[0], size=SIZE_BODY)
                     if c == len(headers) - 1 and val in RAG_COLORS:  # Status column
                         cell.fill.solid()
