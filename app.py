@@ -168,7 +168,7 @@ def generate_background():
     y, x = np.ogrid[0:height, 0:width]
     gradient = np.linspace(0, 1, width) * 255  # Gradient from left blue to right white
     gradient = np.tile(gradient, (height, 1))
-    blue_channel = 255 - gradient  # Dark blue to light
+    blue_channel = np.clip(255 - gradient, 0, 255)  # Dark blue to light
     green_channel = blue_channel // 2
     red_channel = np.zeros_like(blue_channel)
 
