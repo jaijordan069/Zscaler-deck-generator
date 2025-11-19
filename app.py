@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Streamlit app: Zscaler Professional Services Transition Deck PPT Generator.
+Streamlit app: Zscaler Professional Services Transition Deck PPT Generator
+Improved version: Attractive UI, exact template match, image handling, more defaults.
 """
 from __future__ import annotations
 import io
@@ -15,20 +16,20 @@ from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_AUTO_SIZE
 from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR
 from pptx.oxml.ns import qn
-from pptx.util import Length  # Added for type checking
+from pptx.util import Length  # For type checking
 
 # -------------------------
 # Configuration / Constants (Updated for exact template match)
 # -------------------------
 st.set_page_config(page_title="Zscaler Transition Deck Generator", layout="wide", initial_sidebar_state="expanded")
 
-# Custom CSS for attractive UI (Zscaler branding)
+# Custom CSS for attractive UI (Softened for better readability)
 st.markdown("""
     <style>
     .stApp { background-color: #F5F9FD; }  /* Light blue bg */
     .stButton > button { background-color: #256CF7; color: white; border-radius: 8px; }
-    .stTextInput > div > div > input { border-color: #001744; }
-    .sidebar .sidebar-content { background-color: #001744; color: white; }
+    .stTextInput > div > div > input { border-color: #256CF7; }
+    .sidebar .sidebar-content { background-color: #256CF7; color: white; }
     h1, h2 { color: #001744; }
     </style>
 """, unsafe_allow_html=True)
@@ -55,10 +56,10 @@ SIZE_SMALL = Pt(12)
 SIZE_FOOTER = Pt(8)
 
 # Layout constants (fine-tuned to match template positions)
-MARGIN_LEFT = Inches(0.5)
-MARGIN_TOP = Inches(0.5)
-MARGIN_RIGHT = Inches(0.5)
-FOOTER_HEIGHT = Inches(0.4)
+MARGIN_LEFT = Inches(0.45)
+MARGIN_TOP = Inches(0.45)
+MARGIN_RIGHT = Inches(0.45)
+FOOTER_HEIGHT = Inches(0.35)
 
 # Assets (added alt logos, bg if needed)
 LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Zscaler_logo.svg/512px-Zscaler_logo.svg.png"
@@ -156,7 +157,7 @@ def add_slide_with_background(prs: Presentation, bg_bytes: Optional[io.BytesIO])
     return slide
 
 # -------------------------
-# Streamlit UI (Made attractive: Columns, expanders, previews, images)
+# Streamlit UI (Made attractive: Columns, expanders, previews, images in expander)
 # -------------------------
 with st.sidebar:
     st.image(LOGO_URL, width=200)
@@ -168,13 +169,13 @@ with st.sidebar:
 st.title("Zscaler Professional Services Transition Deck Generator")
 st.markdown("Enter details below. Defaults match the Pixartprinting template. UI is organized for ease!")
 
-# Image Uploaders (new: for template images)
-st.header("Upload Template Images (Optional)")
-uploaded_images = {}
-for img_name in ["image3.jpg", "image4.png", "image5.png", "image6.png", "image35.png", "image36.svg", "image7.png", "image10.png", "image8.jpg", "image2.png", "image37.png", "image9.png", "image38.png", "image39.png", "image40.png", "image41.jpg", "image1.png"]:
-    uploaded = st.file_uploader(f"Upload {img_name}", type=["jpg", "png", "svg"])
-    if uploaded:
-        uploaded_images[img_name] = io.BytesIO(uploaded.read())
+# Image Uploaders (wrapped in expander to hide clutter)
+with st.expander("Optional: Upload Template Images", expanded=False):
+    uploaded_images = {}
+    for img_name in ["image3.jpg", "image4.png", "image5.png", "image6.png", "image35.png", "image36.svg", "image7.png", "image10.png", "image8.jpg", "image2.png", "image37.png", "image9.png", "image38.png", "image39.png", "image40.png", "image41.jpg", "image1.png"]:
+        uploaded = st.file_uploader(f"Upload {img_name}", type=["jpg", "png", "svg"])
+        if uploaded:
+            uploaded_images[img_name] = io.BytesIO(uploaded.read())
 
 # Customer & Project (balanced columns)
 st.header("Customer & Project Basics")
@@ -337,11 +338,11 @@ if st.button("Generate & Download PPTX"):
         # Helper: Title Slide (tweaked positions)
         def create_title_slide(title_text: str, subtitle_text: str = "", date_text: str = "", slide_num: int = 1):
             slide = add_slide_with_background(prs, bg_bytes)
-            add_textbox(slide, MARGIN_LEFT, Inches(2.0), Inches(8.0), Inches(1.0), title_text, SIZE_TITLE, True, COLOR_NAVY)
+            add_textbox(slide, MARGIN_LEFT, Inches(1.0), Inches(8.0), Inches(1.0), title_text, SIZE_TITLE, True, COLOR_NAVY)
             if subtitle_text:
-                add_textbox(slide, MARGIN_LEFT, Inches(3.0), Inches(8.0), Inches(0.5), subtitle_text, SIZE_SUBTITLE, color=COLOR_NAVY)
+                add_textbox(slide, MARGIN_LEFT, Inches(2.1), Inches(8.0), Inches(0.5), subtitle_text, SIZE_SUBTITLE, color=COLOR_NAVY)
             if date_text:
-                add_textbox(slide, MARGIN_LEFT, Inches(3.5), Inches(8.0), Inches(0.5), date_text, SIZE_BODY)
+                add_textbox(slide, MARGIN_LEFT, Inches(2.6), Inches(8.0), Inches(0.5), date_text, SIZE_BODY)
             apply_template_branding(prs, slide, slide_num, logo_bytes)
             # Add images if uploaded (placeholder positions)
             for img_name, img_bytes in uploaded_images.items():
@@ -352,8 +353,8 @@ if st.button("Generate & Download PPTX"):
         # Helper: Bullet Slide (same, but added image support)
         def create_bullet_slide(title_text: str, bullets: List[str], slide_num: int = 1):
             slide = add_slide_with_background(prs, bg_bytes)
-            add_textbox(slide, MARGIN_LEFT, Inches(1.0), Inches(8.0), Inches(0.5), title_text, SIZE_SLIDE_TITLE, True, COLOR_NAVY)
-            top = Inches(2.0)
+            add_textbox(slide, MARGIN_LEFT, Inches(0.45), Inches(8.0), Inches(0.5), title_text, SIZE_SLIDE_TITLE, True, COLOR_NAVY)
+            top = Inches(1.2)
             for b in bullets:
                 add_textbox(slide, MARGIN_LEFT + Inches(0.5), top, Inches(7.5), Inches(0.4), "- " + b, SIZE_BODY)
                 top += Inches(0.5)
@@ -361,9 +362,9 @@ if st.button("Generate & Download PPTX"):
             return slide
 
         # Helper: Table Slide (enhanced with RAG colors, exact widths, and run guards to fix IndexError)
-        def create_table_slide(title_text: str, headers: List[str], rows: List[List[str]], slide_num: int = 1, top_inch: float = 1.5, height_inch: float = 4.0, col_widths: List = None):
+        def create_table_slide(title_text: str, headers: List[str], rows: List[List[str]], slide_num: int = 1, top_inch: float = 1.2, height_inch: float = 4.0, col_widths: List = None):
             slide = add_slide_with_background(prs, bg_bytes)
-            add_textbox(slide, MARGIN_LEFT, Inches(0.5), Inches(8.0), Inches(0.5), title_text, SIZE_SLIDE_TITLE, True, COLOR_NAVY)
+            add_textbox(slide, MARGIN_LEFT, Inches(0.45), Inches(8.0), Inches(0.5), title_text, SIZE_SLIDE_TITLE, True, COLOR_NAVY)
             left = MARGIN_LEFT
             top = Inches(top_inch)
             width = slide_width - 2 * MARGIN_LEFT
@@ -406,45 +407,80 @@ if st.button("Generate & Download PPTX"):
             apply_template_branding(prs, slide, slide_num, logo_bytes)
             return slide
 
-        # Helper: ZIA Diagram (expanded to match template exactly)
+        # Helper: ZIA Diagram (expanded to match template exactly, with more elements)
         def create_zia_diagram_slide(slide_num: int = 1):
             slide = add_slide_with_background(prs, bg_bytes)
-            add_textbox(slide, MARGIN_LEFT, Inches(0.5), Inches(8.0), Inches(0.5), "Deployed ZIA Architecture", SIZE_SLIDE_TITLE, True, COLOR_NAVY)
+            add_textbox(slide, MARGIN_LEFT, Inches(0.45), Inches(8.0), Inches(0.5), "Deployed ZIA Architecture", SIZE_SLIDE_TITLE, True, COLOR_NAVY)
             # Boxes and labels (fine-tuned positions)
             box_w = Inches(2.5)
             box_h = Inches(1.0)
-            left1 = Inches(1.0)
-            top1 = Inches(1.5)
+            left1 = Inches(0.5)
+            top1 = Inches(1.2)
             # User authentication box
             shape1 = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left1, top1, box_w, box_h)
             shape1.fill.solid(); shape1.fill.fore_color.rgb = COLOR_LIGHT_GRAY
             add_textbox(slide, left1 + Inches(0.2), top1 + Inches(0.3), box_w - Inches(0.4), box_h - Inches(0.6), "User authentication and provisioning", SIZE_SMALL, align=PP_ALIGN.CENTER)
             # Central Authority
-            left2 = left1 + box_w + Inches(1.0)
+            left2 = left1 + box_w + Inches(0.5)
             shape2 = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left2, top1, box_w, box_h)
             shape2.fill.solid(); shape2.fill.fore_color.rgb = COLOR_BRIGHT_BLUE
             add_textbox(slide, left2 + Inches(0.2), top1 + Inches(0.3), box_w - Inches(0.4), box_h - Inches(0.6), "Central Authority", SIZE_SMALL, bold=True, color=COLOR_WHITE, align=PP_ALIGN.CENTER)
-            # Add numbers (1,2,3,4,5 from template)
-            add_textbox(slide, left2 + Inches(1.0), top1 - Inches(0.3), Inches(0.3), Inches(0.3), "1", SIZE_SMALL)
-            # Add Z-Tunnels, Public Service Edges, etc. (more shapes)
-            top2 = top1 + box_h + Inches(1.0)
-            shape3 = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left2, top2, box_w, box_h)
+            # Public Service Edges
+            left3 = left2 + box_w + Inches(0.5)
+            shape3 = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left3, top1, box_w, box_h)
             shape3.fill.solid(); shape3.fill.fore_color.rgb = COLOR_LIGHT_GRAY
-            add_textbox(slide, left2 + Inches(0.2), top2 + Inches(0.3), box_w - Inches(0.4), box_h - Inches(0.6), "Public Service Edges", SIZE_SMALL, align=PP_ALIGN.CENTER)
+            add_textbox(slide, left3 + Inches(0.2), top1 + Inches(0.3), box_w - Inches(0.4), box_h - Inches(0.6), "Public Service Edges", SIZE_SMALL, align=PP_ALIGN.CENTER)
             # Workforce Region-X
-            left3 = Inches(0.5)
-            top3 = top2 + box_h + Inches(1.0)
-            shape4 = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left3, top3, box_w, box_h)
+            top2 = top1 + box_h + Inches(0.5)
+            shape4 = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left1, top2, box_w, box_h)
             shape4.fill.solid(); shape4.fill.fore_color.rgb = COLOR_LIGHT_GRAY
-            add_textbox(slide, left3 + Inches(0.2), top3 + Inches(0.3), box_w - Inches(0.4), box_h - Inches(0.6), "Workforce (Region-X)\nOn | Off - net", SIZE_SMALL, align=PP_ALIGN.CENTER)
-            # More (SSL Inspection, etc.)
-            # Connectors (arrows)
-            conn1 = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, left1 + box_w, top1 + box_h/2, left2, top1 + box_h/2)
-            conn1.line.color.rgb = COLOR_BLACK
+            add_textbox(slide, left1 + Inches(0.2), top2 + Inches(0.3), box_w - Inches(0.4), box_h - Inches(0.6), "Workforce (Region-X)\nOn | Off - net", SIZE_SMALL, align=PP_ALIGN.CENTER)
+            # Z-Tunnels box
+            shape5 = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left2, top2, box_w, box_h)
+            shape5.fill.solid(); shape5.fill.fore_color.rgb = COLOR_LIGHT_GRAY
+            add_textbox(slide, left2 + Inches(0.2), top2 + Inches(0.3), box_w - Inches(0.4), box_h - Inches(0.6), "Z-Tunnels", SIZE_SMALL, align=PP_ALIGN.CENTER)
+            # SSL Inspection
+            shape6 = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left3, top2, box_w, box_h)
+            shape6.fill.solid(); shape6.fill.fore_color.rgb = COLOR_LIGHT_GRAY
+            add_textbox(slide, left3 + Inches(0.2), top2 + Inches(0.3), box_w - Inches(0.4), box_h - Inches(0.6), "SSL Inspection", SIZE_SMALL, align=PP_ALIGN.CENTER)
+            # Workforce Region-Y (added for template)
+            top3 = top2 + box_h + Inches(0.5)
+            shape7 = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left1, top3, box_w, box_h)
+            shape7.fill.solid(); shape7.fill.fore_color.rgb = COLOR_LIGHT_GRAY
+            add_textbox(slide, left1 + Inches(0.2), top3 + Inches(0.3), box_w - Inches(0.4), box_h - Inches(0.6), "Workforce (Region-Y)\nOn | Off - net", SIZE_SMALL, align=PP_ALIGN.CENTER)
+            # Admin Console
+            shape8 = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left3, top3, box_w, box_h)
+            shape8.fill.solid(); shape8.fill.fore_color.rgb = COLOR_LIGHT_GRAY
+            add_textbox(slide, left3 + Inches(0.2), top3 + Inches(0.3), box_w - Inches(0.4), box_h - Inches(0.6), "Admin Console", SIZE_SMALL, align=PP_ALIGN.CENTER)
+            # Logging
+            shape9 = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left2, top3, box_w, box_h)
+            shape9.fill.solid(); shape9.fill.fore_color.rgb = COLOR_LIGHT_GRAY
+            add_textbox(slide, left2 + Inches(0.2), top3 + Inches(0.3), box_w - Inches(0.4), box_h - Inches(0.6), "Logging", SIZE_SMALL, align=PP_ALIGN.CENTER)
+            # Numbers (1-5 from template)
+            add_textbox(slide, left1 + box_w / 2, top1 - Inches(0.3), Inches(0.3), Inches(0.3), "1", SIZE_SMALL)
+            add_textbox(slide, left2 + box_w / 2, top1 - Inches(0.3), Inches(0.3), Inches(0.3), "3", SIZE_SMALL)
+            add_textbox(slide, left3 + box_w / 2, top1 - Inches(0.3), Inches(0.3), Inches(0.3), "4", SIZE_SMALL)
+            add_textbox(slide, left1 + box_w / 2, top2 - Inches(0.3), Inches(0.3), Inches(0.3), "2", SIZE_SMALL)
+            add_textbox(slide, left3 + box_w / 2, top3 - Inches(0.3), Inches(0.3), Inches(0.3), "5", SIZE_SMALL)
+            # Connectors (arrows for Z-Tunnels, etc.)
+            try:
+                conn1 = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, left1 + box_w, top1 + box_h/2, left2, top1 + box_h/2)
+                conn1.line.color.rgb = COLOR_BLACK
+                conn2 = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, left2 + box_w, top1 + box_h/2, left3, top1 + box_h/2)
+                conn2.line.color.rgb = COLOR_BLACK
+                conn3 = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, left1 + box_w/2, top1 + box_h, left1 + box_w/2, top2)
+                conn3.line.color.rgb = COLOR_BLACK
+                # Add more for full template
+                conn4 = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, left3 + box_w/2, top1 + box_h, left3 + box_w/2, top2)
+                conn4.line.color.rgb = COLOR_BLACK
+                conn5 = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, left1 + box_w/2, top2 + box_h, left1 + box_w/2, top3)
+                conn5.line.color.rgb = COLOR_BLACK
+            except Exception:
+                pass
             # Key facts (as table-like text)
-            key_top = Inches(1.5)
-            key_left = Inches(7.0)
-            key_text = f"Identity Provider: {idp}\nAuthentication Type: {auth_type}\nProvisioning: {prov_type}\n\nTunnel Type: {tunnel_type}\nDeployment System: {deploy_system}\nWindows: {windows_num}\nMacOS: {mac_num}\nGeo: {geo_locations}\n\nSSL Policies: {ssl_policies}\nURL Policies: {url_policies}\nCloud Policies: {cloud_policies}\nFirewall Policies: {fw_policies}"
+            key_top = Inches(1.2)
+            key_left = Inches(8.0)
+            key_text = f"Identity Provider: {idp}\nAuthentication Type: {auth_type}\nProvisioning: {prov_type}\n\nTunnel Type: {tunnel_type}\nDeployment System: {deploy_system}\nNumber of Windows and MacOS Devices: {windows_num} Windows\n{mac_num} MacOS\nGeo Locations: {geo_locations}\n\nPolicy Deployment\nSSL Inspection Policies: {ssl_policies}\nURL Filtering Policies: {url_policies}\nCloud App Control Policies: {cloud_policies}\nFirewall Policies: {fw_policies}"
             add_textbox(slide, key_left, key_top, Inches(4.0), Inches(4.0), key_text, SIZE_SMALL)
             apply_template_branding(prs, slide, slide_num, logo_bytes)
             return slide
@@ -471,17 +507,17 @@ if st.button("Generate & Download PPTX"):
 
         # Slide 4: Final Project Status Report (added who/what box, RAG key)
         slide4 = add_slide_with_background(prs, bg_bytes)
-        add_textbox(slide4, MARGIN_LEFT, Inches(0.5), Inches(8.0), Inches(0.5), f"Final Project Status Report – {customer_name}", SIZE_SLIDE_TITLE, True, COLOR_NAVY)
+        add_textbox(slide4, MARGIN_LEFT, Inches(0.45), Inches(8.0), Inches(0.5), f"Final Project Status Report – {customer_name}", SIZE_SLIDE_TITLE, True, COLOR_NAVY)
         add_textbox(slide4, MARGIN_LEFT, Inches(1.2), Inches(8.0), Inches(0.4), "Project Summary", SIZE_HEADER, True)
         add_textbox(slide4, MARGIN_LEFT, Inches(1.7), Inches(8.0), Inches(1.0), project_summary_text, SIZE_BODY)
         # Dates
-        add_textbox(slide4, MARGIN_LEFT, Inches(3.0), Inches(4.0), Inches(1.0), f"Today's Date: {today_date} | Start: {project_start} | End: {project_end}", SIZE_BODY)
+        add_textbox(slide4, MARGIN_LEFT, Inches(2.5), Inches(4.0), Inches(1.0), f"Today's Date: {today_date} | Start: {project_start} | End: {project_end}", SIZE_BODY)
         # Who/What/When/Why box (new)
         who_text = "Who: External & Internal Project Team\nWhat: Project Status Report\nWhen: Weekly\nWhy: Keeps stakeholders informed on scope, schedule, risks, etc.\nMandatory: Yes"
-        add_textbox(slide4, Inches(6.0), Inches(4.0), Inches(4.0), Inches(2.0), who_text, SIZE_SMALL)
+        add_textbox(slide4, Inches(6.0), Inches(3.0), Inches(4.0), Inches(2.0), who_text, SIZE_SMALL)
         # RAG Key (new table-like)
         rag_text = "RAG Status Key:\nRed - Not On Track\nAmber - At Risk\nGreen - On Track\nBlue - Complete\nGray - Not Started"
-        add_textbox(slide4, Inches(6.0), Inches(6.5), Inches(4.0), Inches(1.5), rag_text, SIZE_SMALL)
+        add_textbox(slide4, Inches(6.0), Inches(5.5), Inches(4.0), Inches(1.5), rag_text, SIZE_SMALL)
         apply_template_branding(prs, slide4, 4, logo_bytes)
         current += 1
         progress.progress(current / total_slides)
@@ -499,21 +535,21 @@ if st.button("Generate & Download PPTX"):
             ["Pilot", str(pilot_target), str(pilot_current), pilot_completion, pilot_status],
             ["Production", str(prod_target), str(prod_current), prod_completion, prod_status]
         ]
-        create_table_slide("User Rollout Roadmap", rollout_headers, rollout_rows, 6, top_inch=2.0, height_inch=1.5, col_widths=[Inches(2.0), Inches(2.0), Inches(2.0), Inches(2.0), Inches(2.0)])
+        create_table_slide("User Rollout Roadmap", rollout_headers, rollout_rows, 6, top_inch=1.2, height_inch=1.5, col_widths=[Inches(2.0), Inches(2.0), Inches(2.0), Inches(2.0), Inches(2.0)])
         current += 1
         progress.progress(current / total_slides)
 
         # Slide 7: Project Status (Objectives Table, new)
         obj_headers = ["Planned Project Objective (Target)", "Actual Project Result (Actual)", "Deviation/ Cause"]
         obj_rows = [[o["objective"], o["actual"], o["deviation"]] for o in objectives_data]
-        create_table_slide("Project Status", obj_headers, obj_rows, 7, top_inch=1.5, height_inch=2.0, col_widths=[Inches(3.5), Inches(3.5), Inches(3.0)])
+        create_table_slide("Project Status", obj_headers, obj_rows, 7, top_inch=1.2, height_inch=2.0, col_widths=[Inches(3.5), Inches(3.5), Inches(3.0)])
         current += 1
         progress.progress(current / total_slides)
 
         # Slide 8: Deliverables Table
         del_headers = ["Deliverable", "Date delivered"]
         del_rows = [[d["name"], d["date"]] for d in deliverables_data]
-        create_table_slide("Deliverables", del_headers, del_rows, 8)
+        create_table_slide("Deliverables", del_headers, del_rows, 8, top_inch=1.2)
         current += 1
         progress.progress(current / total_slides)
 
@@ -536,23 +572,23 @@ if st.button("Generate & Download PPTX"):
 
         # Slide 12: Next Steps & Thank You (combined for match)
         slide12 = add_slide_with_background(prs, bg_bytes)
-        add_textbox(slide12, MARGIN_LEFT, Inches(0.5), Inches(8.0), Inches(0.5), "Recommended Next Steps", SIZE_SLIDE_TITLE, True, COLOR_NAVY)
+        add_textbox(slide12, MARGIN_LEFT, Inches(0.45), Inches(8.0), Inches(0.5), "Recommended Next Steps", SIZE_SLIDE_TITLE, True, COLOR_NAVY)
         # Short Term
         add_textbox(slide12, MARGIN_LEFT, Inches(1.2), Inches(4.0), Inches(0.4), "Short Term Activities", SIZE_HEADER, True)
-        top = Inches(1.8)
+        top = Inches(1.6)
         for item in short_term:
             add_textbox(slide12, MARGIN_LEFT + Inches(0.3), top, Inches(3.5), Inches(0.3), item, SIZE_BODY)
             top += Inches(0.4)
         # Long Term
         add_textbox(slide12, Inches(5.5), Inches(1.2), Inches(4.0), Inches(0.4), "Long Term Activities", SIZE_HEADER, True)
-        top = Inches(1.8)
+        top = Inches(1.6)
         for item in long_term:
             add_textbox(slide12, Inches(5.8), top, Inches(3.5), Inches(0.3), item, SIZE_BODY)
             top += Inches(0.4)
         # Thank You section
-        add_textbox(slide12, MARGIN_LEFT, Inches(5.0), Inches(8.0), Inches(0.5), "Thank you", SIZE_TITLE, True, COLOR_NAVY)
+        add_textbox(slide12, MARGIN_LEFT, Inches(4.5), Inches(8.0), Inches(0.5), "Thank you", SIZE_TITLE, True, COLOR_NAVY)
         thank_text = f"Your feedback on our project and Professional Services team is important to us. \nProject Manager: {pm_name}\nConsultant: {consultant_name}\n\nA short ~6 question survey on how your Professional Services team did will be automatically sent after the project has closed. The following people will receive the survey via email:\nPrimary Contact: {primary_contact}\nSecondary Contact: {secondary_contact}\nWe appreciate any insights you can provide to help us improve our processes and ensure we provide the best possible service in future projects.\n\nWe want to know!"
-        add_textbox(slide12, MARGIN_LEFT, Inches(5.5), Inches(8.0), Inches(3.0), thank_text, SIZE_BODY)
+        add_textbox(slide12, MARGIN_LEFT, Inches(5.0), Inches(8.0), Inches(3.0), thank_text, SIZE_BODY)
         apply_template_branding(prs, slide12, 12, logo_bytes)
         current += 1
         progress.progress(current / total_slides)
