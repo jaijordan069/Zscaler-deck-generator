@@ -23,14 +23,15 @@ from pptx.util import Length  # For type checking
 # -------------------------
 st.set_page_config(page_title="Zscaler Transition Deck Generator", layout="wide", initial_sidebar_state="expanded")
 
-# Custom CSS for attractive UI (Softened for better readability)
+# Custom CSS for attractive UI (Softened for better readability and visibility)
 st.markdown("""
     <style>
-    .stApp { background-color: #F5F9FD; }  /* Light blue bg */
+    .stApp { background-color: #F5F9FD; color: #000000; }  /* Light blue bg, black text */
     .stButton > button { background-color: #256CF7; color: white; border-radius: 8px; }
-    .stTextInput > div > div > input { border-color: #256CF7; }
+    .stTextInput > div > div > input { border-color: #256CF7; color: #000000; }
     .sidebar .sidebar-content { background-color: #256CF7; color: white; }
     h1, h2 { color: #001744; }
+    .stMarkdown { color: #000000; }  /* Ensure markdown text is dark */
     </style>
 """, unsafe_allow_html=True)
 
@@ -165,6 +166,19 @@ with st.sidebar:
     st.markdown("Create customer transition decks fast! Matches template exactly.")
     st.markdown("**Steps:**\n1. Fill details.\n2. Upload images if needed.\n3. Preview.\n4. Generate & Download.")
     theme = st.selectbox("Theme", ["Light", "Dark"], index=0)  # Can tie to colors later
+
+# Theme switch logic
+if theme == "Dark":
+    st.markdown("""
+    <style>
+    .stApp { background-color: #0e1117; color: #fafafa; }
+    .stButton > button { background-color: #256CF7; color: white; }
+    .stTextInput > div > div > input { border-color: #256CF7; color: #fafafa; background-color: #1f2937; }
+    .sidebar .sidebar-content { background-color: #1f2937; color: #fafafa; }
+    h1, h2 { color: #fafafa; }
+    .stMarkdown { color: #fafafa; }
+    </style>
+    """, unsafe_allow_html=True)
 
 st.title("Zscaler Professional Services Transition Deck Generator")
 st.markdown("Enter details below. Defaults match the Pixartprinting template. UI is organized for ease!")
@@ -487,7 +501,7 @@ if st.button("Generate & Download PPTX"):
 
         # Build Slides (added missing ones: rollout, objectives, who/what, RAG key)
         progress = st.progress(0)
-        total_slides = 12  # Added one for full match
+        total_slides = 13  # Split Next Steps and Thank You
         current = 0
 
         # Slide 1: Title
@@ -570,7 +584,7 @@ if st.button("Generate & Download PPTX"):
         current += 1
         progress.progress(current / total_slides)
 
-        # Slide 12: Next Steps & Thank You (combined for match)
+        # Slide 12: Recommended Next Steps (separate)
         slide12 = add_slide_with_background(prs, bg_bytes)
         add_textbox(slide12, MARGIN_LEFT, Inches(0.45), Inches(8.0), Inches(0.5), "Recommended Next Steps", SIZE_SLIDE_TITLE, True, COLOR_NAVY)
         # Short Term
@@ -585,11 +599,16 @@ if st.button("Generate & Download PPTX"):
         for item in long_term:
             add_textbox(slide12, Inches(5.8), top, Inches(3.5), Inches(0.3), item, SIZE_BODY)
             top += Inches(0.4)
-        # Thank You section
-        add_textbox(slide12, MARGIN_LEFT, Inches(4.5), Inches(8.0), Inches(0.5), "Thank you", SIZE_TITLE, True, COLOR_NAVY)
-        thank_text = f"Your feedback on our project and Professional Services team is important to us. \nProject Manager: {pm_name}\nConsultant: {consultant_name}\n\nA short ~6 question survey on how your Professional Services team did will be automatically sent after the project has closed. The following people will receive the survey via email:\nPrimary Contact: {primary_contact}\nSecondary Contact: {secondary_contact}\nWe appreciate any insights you can provide to help us improve our processes and ensure we provide the best possible service in future projects.\n\nWe want to know!"
-        add_textbox(slide12, MARGIN_LEFT, Inches(5.0), Inches(8.0), Inches(3.0), thank_text, SIZE_BODY)
         apply_template_branding(prs, slide12, 12, logo_bytes)
+        current += 1
+        progress.progress(current / total_slides)
+
+        # Slide 13: Thank You (separate)
+        slide13 = add_slide_with_background(prs, bg_bytes)
+        add_textbox(slide13, MARGIN_LEFT, Inches(1.0), Inches(8.0), Inches(0.5), "Thank you", SIZE_TITLE, True, COLOR_NAVY)
+        thank_text = f"Your feedback on our project and Professional Services team is important to us. \nProject Manager: {pm_name}\nConsultant: {consultant_name}\n\nA short ~6 question survey on how your Professional Services team did will be automatically sent after the project has closed. The following people will receive the survey via email:\nPrimary Contact: {primary_contact}\nSecondary Contact: {secondary_contact}\nWe appreciate any insights you can provide to help us improve our processes and ensure we provide the best possible service in future projects.\n\nWe want to know!"
+        add_textbox(slide13, MARGIN_LEFT, Inches(2.0), Inches(8.0), Inches(3.0), thank_text, SIZE_BODY)
+        apply_template_branding(prs, slide13, 13, logo_bytes)
         current += 1
         progress.progress(current / total_slides)
 
